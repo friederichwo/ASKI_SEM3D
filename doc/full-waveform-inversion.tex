@@ -1,0 +1,326 @@
+%
+\section{Performing sensitivity kernel based FWI with ASKI}
+\label{sec:senskernels}
+%
+Once the kernel displacement fields and the kernel Green tensor fields are computed using SPECFEM, ASKI programs may be used to perform a full waveform inversion step. Among these are executables for computing sensitivity kernels, for producing Fourier transformed data samples, for producing Fourier transformed data predictions, for solving the kernel linear system and finally exporting the newly found earth model.
+%
+\subsection{Data and model space}
+%
+A very important ingredient to ASKI full waveform inversion is the definition of data and model space to be used in the inversion step. A single datum in ASKI full waveform inversion is characterized by a \textbf{path}, defined by an event-station pair, a \textbf{weight}, its receiver \textbf{component} and the \textbf{index} defining the Fourier frequency. Moreover, each datum is a complex number consisting of \textbf{real} and \textbf{imaginary part}. For each path, the frequencies and components used in the inversion may be chosen individually. Thus, the number of data per path is two times the number of components times the number of frequencies (2*nf*ncomp). The current implementation of the data space allows to assign weights either by frequency or by path or by path and frequency. Component-wise weighting is not implemented.
+
+A single model component is defined by its material \textbf{property} (e. g. density, P- and S-wave velocity), and its cell in the inversion grid. Thus, the number of model components is the number of properties to be inverted for times the number of inversion grid cells (nprop*ncell). Association of a certain material property to selected cells is not implemented. Each listed property is assumed to be defined on the full inversion grid.
+
+ Data and model space are defined together in a single file, the ``data-model-space''-file. It is structured in two basic blocks, one for the data and one for the model space. The blocks can be preceded and followed by arbitrary comment lines. The model values block looks as follows:
+%
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item \verb+MODEL_VALUES+, starting the model values block within which no comment lines are allowed,
+	\item  a line of the form \verb+nprop prop_1 prop_2 ... prop_n+ specifiying the property set used for all inversion grid cells,
+\end{itemize}
+%
+The data samples block is a bit more elaborated:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item \verb+DATA_SAMPLES+, starting the data samples block within which no comment lines are allowed;
+	\item \verb+WEIGHTING value+ where \verb+value+ is either \verb+NONE+, \verb+BY_FREQUENCY+, \verb+BY_PATH+ or \verb+BY_PATH_AND_FREQUENCY+; the latter two are only allowed if \verb+PATHS SPECIFIC+ is chosen in the next line;
+	\item 3rd line: \verb+PATHS value+ where \verb+value+ is either \verb+ALL+ or \verb+SPECIFIC+.
+\end{itemize}
+What follows depends on what is chosen for \verb+PATHS+. In case of \verb+ALL+
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item a line with \verb+nev ev_1 ev_2 ... ev_n+ defining the events to be used;
+	\item a line with \verb+nstat stat_1 stat_2 ... stat_n+ defining the stations to be used, the full set of paths is built from all combinations of events and stations;
+	\item a line \verb+COMPONENTS ALL+ (same components for all paths);
+	\item a line of the form \verb+ncomp comp_1 comp_2 ... comp_n+ defining the components for all paths
+	\item a line \verb+FREQUENCIES ALL+ (same set of frequencies for all paths);
+	\item a line of the form \verb+nfreq ifreq_1 ifreq_2 ... ifreq_n+ defining the frequency indices for all paths;
+	\item a line of the form \verb+nfreq w_1 w_2 ... w_n+ defining \verb+nfreq+ weights for each frequency IF \verb+WEIGHTING BY_FREQUENCY+ was chosen.
+\end{itemize}
+ If \verb+PATHS SPECIFIC+ is chosen in line 3, then much more details need to be specified. First, in the following 3 lines you need to set \verb+COMPONENTS+, \verb+FREQUENCIES+ to either \verb+ALL+ or \verb+SPECIFIC+. If you choose \verb+ALL+ for any of the three, you need to provide lines of the form, e.g., \verb+nfreq freq_1 freq_2 ... freq_n+ directly below. For the keyword \verb+FREQUENCIES+ you must add a further line with weights if weighting by frequency or weighting by path and frequency was chosen. If you choose \verb+SPECIFIC+ for any of the three, no further specifications directly follow that line.
+
+ After having chosen values for these three keywords and having added required lines, the next line gives the number of paths \verb+npath+ followed by \verb+npath+ blocks of lines specifying the data samples. Each block may contain:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item \verb+event_id network_staname [w]+ defining the path and optionally a weight if \\ \verb+WEIGHTING BY_PATH+ or \verb+WEIGHTING BY_PATH_AND_FREQUENCY+ was chosen; in the latter case the weights for path and frequency are multiplied(!),
+	\item if \verb+COMPONENTS SPECIFIC+, add a line \verb+ncomp comp_1 comp_2 ... comp_n+ for this specific path;
+	\item if \verb+FREQUENCIES SPECIFIC+, add a line \verb+nfreq freq_1 freq_2 ... freq_n+ for this specific path;
+	\item add a line with weights \verb+nfreq w_1 w_2 ... w_n+ if weighting by frequency or by path and frequency was chosen, the final weight is then the product of path and frequency weight.
+\end{itemize}
+The \verb+SPECIFIC+ options seem to be complicated but by using them you have full control on the data samples and weights used by the inversion. There are 3 examples of data-model-space files in ASKI's template folder.
+%
+ \begin{actionbox}[label={action:dmsp-file},float=h!]{Data-model-space file}
+    Run the Python script \verb+createDmspaceFile.py+ which helps in setting up the data-model-space file for large data sets.
+ \end{actionbox}
+%
+\subsection{Issue with frequency domain treatment of sensitivity kernels}
+%
+ In the time domain, the waveform sensitivity kernels with respect to density and seismic velocities are calculated as a convolution of the incoming wavefield and its derivatives and the Green tensor components and their derivatives backpropagated from the station locations. In the Fourier domain, this converts to a multiplication of the Fourier transforms of these quantities. This is however only fully true for infinitely long time series. What hapens if only time windows are considered in the inversion?
+ 
+ Consider a given station and an earthquake for which we have an observed and a synthetic seismogram. In the inversion, we consider only a time window starting at time $S$ and ending at time $E$. In our case, synthetic and kernel seismograms start at a common time which we take as the origin of our time axis. Deviating start times of the observed seismograms are corrected for by applying a phase shift to their Fourier transforms. In the time domain, we can write down the following equation which we will want to satisfy in a least squares sense later in the inversion:
+ %
+\begin{align}
+	d(\tau) - s(\tau) = \sum_j k_j(\tau)\,m_j \,,
+\end{align}
+%
+where $d(\tau$) is the observed seismogram, $s(\tau)$ the synthetic one, $k_j(\tau)$ the kernel seismogram for model parameter $m_j$. When taking the Fourier transform, we integrate all of them from start to end time of data and synthetics, for example:
+%
+\begin{align}
+	K_j(\omega) = \int_0^{L} k_j(\tau)\,e^{-i\omega\tau}d\tau\,,
+\end{align}
+% 
+where $L = E-S$ is the length of the kernel seismogram as well as that of observed and synthetic seismogram. The kernel seismogram is the convolution of variants of the incoming wavefield $u_j$ and variants of the Green tensor field $g_j$ at model location $j$:
+%
+\begin{align}
+	k_j(\tau) = \int_0^{L_u}\,u_j(t)g_j(\tau-t)dt \,,
+\end{align}
+%
+where $L_u$ is the length of incoming wavefield (also starting at origin time $S$). Inserting this into the equation above, we obtain
+%
+\begin{align}
+	K_j(\omega) = \int_0^{L}d\tau\int_0^{L_u}dt\,u_j(t)g_j(\tau-t)e^{-i\omega\tau} \,.
+\end{align}
+% 
+First we interchange the $t$ and the $\tau$ integration:
+%
+\begin{align}
+	K_j(\omega) = \int_0^{L_u}dt\,u_j(t)\int_0^{L}d\tau\,g_j(\tau-t)e^{-i\omega\tau} \,.
+\end{align}
+% 
+Then, we apply the substitution $s=\tau-t$. Considering $t$ fixed within the $\tau$-integration, its lower limit changes to $-t$ and its upper limit to $L-t$:
+%
+\begin{align}
+	K_j(\omega) = \int_0^{L_u}dt\,u_j(t)\int_{-t}^{L-t}ds\,g_j(s)e^{-i\omega(s+t)} =
+	 \int_0^{L_u}dt\,u_j(t)e^{-i\omega t}\int_{0}^{L-t}ds\,g_j(s)e^{-i\omega s}\,,
+\end{align}
+% 
+where we changed the lower limit to $0$ because the Green tensor seismograms vanish for negative times. The first integral is the Fourier transform of $u_j$ but the second one may be different from the Fourier transform of $g_j$ depending on the upper limit. The upper limit decreases from $L$ to $L-L_u$. Hence, only if $L-L_u \ge L_g$, the length of $g_j$, then it is identical to the Fourier transform.
+
+A simple solution of the problem is to extend the considered time window or to assume that zeros have been appended to it. The former approach may include new undesired signals into the time window, the latter one forces the inversion to produce a model which does not create scattered signals where the zeros were appended which is impossible. Moreover, in our approach to FWI, the choice of $L_u$ is event-specific but the same for all stations. Secondly, the length $L_g$ may change with the station but is the same for all events. So, we can neither adapt $L_u$ nor $L_g$ to a specific path.
+
+The following considerations may help out of this dilemma. The length of the synthetic seismogram used for Fourier transform is $L=t_P+w$ where $t_P$ is the P-wave travel time to the receiver and $w$ the length of the phase window. Similarly, we can define the length of the incoming wavefield $L_u = \tau_P+w_s$ where $\tau_P$ is the P-wave travel time to the scatterer and $w_s$ the length of the scattering window which must be chosen shorter than the phase window. The idea is that the incoming wavefield consists of the main P-wave train followed by smaller secondary signals with a second-order contribution to scattering. Finally, we can write the length of the Green tensor seismogram as $L_g = \theta+w_g$ where $\theta$ is either the travel time of the P or S wave and $w_g$ is the length of the phase. With these new definitions, we can rewrite the requirement $L > L_u+L_g$ as:
+%
+\begin{align}
+	t_P+w > \tau_P + w_s+\theta+\Omega \,.
+\end{align}
+% 
+The sum of $\tau_P$ and $\theta$ is the travel time of the scattered wave denoted by $\tau_{sc}$. Using this, we can write
+%
+\begin{align}
+	\tau_{sc}-t_P < w-(w_s+\Omega) \,. 
+\end{align}
+% 
+For example, with $w=120\,s$, $w_s = 60\,s$ and $\Omega = 15\,s$ we obtain 45 s of effective scattering time. Since the P-wave is faster than the S-wave, PP-scattering arrives within the phase window for a much larger region of scatterers than does PS-scattering. If we restricted the scattering region to that of PS-scattering we would miss a large part of the PP-scatterers. A way out is to compute Green tensor spectra for waveforms containing only P and additionally for waveforms containing P and S. Since the scattering region of P to S is not that big (depending on the effective scattering time) we need not store the latter on all scattering points (saving about 3/4 of disk space). Having available both P- and P-plus-S-Green tensor spectra, we can apply the latter when computing kernels if P-to-S-scattering time is less that the effective one and the former if only P-to-P scattering time is less. If both are bigger than the effective scattering time, the kernels are tapered to zero.
+
+Since kernels for P-wave velocity only depend on the divergence of the incoming and back-propagated wavefield which vanishes for S-waves, PS-scattering need not be considered at all.
+
+The phase and scattering windows may vary with the events but it should be possible to keep the difference constant to ensure a constant effective scattering time. According to this time, the region where P-plus-S Green tensor spectra are stored can be determined. You may use the script \verb+plotScatteringTimeField.py+ to visualize the effective scattering regions. In case the true effective scattering time of an event is less than the assumed maximum one, the scattering region can be adjusted during kernel computation. 
+
+Moreover, the number of time steps in SPECFEM should be sufficiently large to assure that the required Green tensor waveforms are available at the scattering points. These travel times can be visualized with the script \verb+plotTravelTimeField.py+. 
+%
+\subsection{Timimg of data, SPECFEM synthetics, injected and back-propagated wavefield}
+%
+We define here the data $d(t)$, the synthetic seismogram $s(t)$ and the injected seismogram at some point in the box, $u(t)$. All are assumed to start at source time. The back-propagated field is denoted by $g(t)$ starting at the begin of the source wavelet. Note that SPECFEM assigns a negative value to this point while SPCEFEM's zero time corresponds to the maximum of the source wavelet. Since we do not want to lose the first half of the source wavelet, we always start at the first sample and associate zero time with it.
+
+When propagating the injected wavefield using SPECFEM, the first sample corresponds to the time when the teleseismic wave first reaches the computational box (called $t_0$). When computing the Fourier transform of displacement at some point inside the box we integrate up to the scattering length $\tau_P+w_s$:
+\begin{align}
+	U(\omega) = \int_{t_0}^{\tau_p+w_s}\,u(t)e^{-i\omega (t)} dt =  \int_{0}^{\tau_P-t_0+w_s}\,u(t'+t_0)e^{-i\omega (t'+t_0)} dt' \,.
+\end{align}
+Here, $t'=t-t_0$ is the time in the numerical simulation and $u(t'+t_0)$ is the value of displacement at that time, say $\tilde{u}(t')$. To get closer to what is actually computed we may also write:
+\begin{align}
+	U(\omega) = e^{-i\omega t_0}\int_{0}^{\tau_P-t_0+w_s}\,\tilde{u}(t')e^{-i\omega t'} dt' = e^{-i\omega t_0}\,\tilde{U}(\omega) \,.
+\end{align}
+
+Since the SPECFEM synthetic seismograms are obtained during the kernel displacement simulations, they also start at $t_{red}$ and we choose $t_P+w$ as upper limit. Hence, their Fourier transform is
+\begin{align}
+S(\omega) = \int_{t_0}^{t_P+w}\,s(t)e^{-i\omega t} dt = \int_{0}^{t_P-t_0+w}\,s(t'+t_0)e^{-i\omega (t'+t_0)} dt' \,.
+\end{align}
+Here, $t'=t-t_0$ is again the time given to the sample in the numerical simulation and $s(t'+t_0)$ is the value of displacement at that time, say $\tilde{s}(t')$. To get closer to what is actually computed we may also write:
+\begin{align}
+	S(\omega) = e^{-i\omega t_0}\int_{0}^{t_P-t_0+w}\,\tilde{s}(t')e^{-i\omega t'} dt' = e^{-i\omega t_0}\,\tilde{S}(\omega) \,.
+\end{align}
+
+The Green tensor simulations effectively provide seismograms starting at time zero because ASKI does a deconvolution with the source wavelet used by SPECFEM. Let us denote these seimograms by $g(t)$. Depending on whether only PP or in addition also PS-scattering is desired, we choose a certain value $\theta+w_g$ up to which the integration is performed:
+\begin{align}
+	G(\omega) &= \int_0^{\theta+w_g}\,g(t)e^{-i\omega t} dt \,.
+\end{align}
+
+It remains to consider the measured seismogram. It starts individually at theoretical travel time minus buffer length ($t_a=t_P-b$) and ends at travel time plus phase window length ($t_P+w$)). The Fourier transform is then:
+\begin{align}
+D(\omega) = \int_{t_P-b}^{t_P+w}\,d(t)e^{-i\omega t} dt = \int_{0}^{w+b}\,d(t'+t_P-b)e^{-i\omega (t'+t_P-b)} dt = \int_{0}^{w+b}\,d(t'+t_a)e^{-i\omega (t'+t_a)} dt \,.
+\end{align}
+Here, $t'=t-t_a$ is again the time given to the data sample and $d(t'+t_a)$ is its value at that time, say $\tilde{d}(t')$. To get closer to what is actually computed we may also write:
+\begin{align}
+	D(\omega) = e^{-i\omega (t_a)}\int_{0}^{w+b}\,\tilde{d}(t')e^{-i\omega t'} dt' = e^{-i\omega (t_a)}\,\tilde{D}(\omega) \,.
+\end{align}
+%
+In the inversion, we set up equations of the form:
+\begin{align}
+	D(\omega)-S(\omega) = \sum_j U_j(\omega)G_j(\omega) m_j \,.
+\end{align}
+Expressing these in terms of the tilded quantities which are actually computed we get:
+\begin{align}
+	e^{-i\omega (t_a)}\tilde{D}(\omega)-e^{-i\omega t_0}\tilde{S}(\omega) = \sum_j e^{-i\omega t_0}\tilde{U}_j(\omega)G_j(\omega) m_j \,.
+\end{align}
+Multiplying with $\exp(+i\omega t_0)$, we obtain:
+\begin{align}
+	e^{-i\omega (t_a-t_0)}\tilde{D}(\omega)-\tilde{S}(\omega) = \sum_j \tilde{U}_j(\omega)G_j(\omega) m_j \,.
+\end{align}
+Thus, it is sufficient to compute the tilded Fourier transforms but we must multiply the tilded transform of the data with the phase factor $\exp(-i\omega (t_a-t_0))$.
+%
+\subsection{Running initBasics and writeVtkFiles}
+%
+ The first step to using ASKI for full waveform inversion is to run the parallel ASKI executable \verb+initBasics+. You may do this on one process or on the same number of processes used for the SPECFEM runs. \verb+initBasics+ checks the which first checks if all parameters needed are present in the parameter files and then creates all basic requirements for ASKI operations. It takes the ASKI main parameter file as mandatory argument. It reads required files like event list and station list files, the wavefield points and the kernel reference model. Furthermore, it creates the inversion grid, localizes the wavefield points inside it and computes the integration weights.
+
+ Using the executable \verb+writeVtkFiles+, plenty of .vtk files with statistics are produced. It takes the ASKI main parameter file as mandatory argument and allows the flag \verb+-nowp+ indicating not to produce VTK files for quantities defined on the SPECFEM wavefield points. More specifically, \verb+writeVtkFiles+ produces VTK files for the inversion grid, the sum of integration weights per cell, the cell volume, density, P- and S-wave velocity on the inversion grid, the wavefield points and density, P- and S-wave velocity on the wavefield points.
+%
+\subsection{Fourier transforming of observed seismograms}
+%
+The Fourier transform of the observed seismograms is done by the executable program \\ \verb+transformMeasuredDataAsciiSeis+. The Fourier transform is applied to observed seismograms that were preprocessed during moment rate function estimation and written to an event subfolder by \verb+computeSourceWavelet+. Processing included detrending, tapering, bandpass filtering using the same filter parameters as for the Gemini synthetics. The executable makes use of the data-model-space block written during moment rate function estimation in which all available station for the given event are listed. It reads the ASKI main parameter file from where it takes number and values of frequencies at which the Fourirer transform is calculated. It also reads values for \verb+FILE_EVENT_LIST+ and \verb+PATH_MEASURED_SEIS+ from the main parameter file. Output files are written to the folder \verb+PATH_MEASURED_DATA+ set in the ASKI main parameter file. Different start times of measured, synthetic and kernel seismograms are corrected by an appropriate phase shift of the Fourier spectral values. Please consult the section on timing below. Note that not all available seismograms are transformed but only the ones available for the events listed in the event file and the stations listed in the station file. The output is written to a single HDF file for each considered component. The HDF datasets are accessible by the path name.
+
+For sensitivity kernel computation, this program computes and writes to HDF the travel time \verb+tt+ for each observation together with the reduction time \verb+tred+, the phase window length \verb+twinlen+ and the end of the phase window given by \verb+tt+twinlen-tred+. This output is necessary to calculate the residual scattering time during kernel computation.
+
+ The command-line arguments are:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-comp+: a component name specifying the seismogram component.
+   \item \verb+-timing+: write timing of observed seismograms to HDF file (set this option!)
+ \end{itemize}
+%
+\subsection{Computing sensitivity kernels}
+%
+ Sensitivity kernels are computed using the parallel program \verb+computeKernelsDmspaceParallel+. The kernels are computed by multiplication of Fourier transformed Green tensor component wavefields and forward wavefields for a given event-station pair (called “path” below). By default, the kernels are integrated over the inversion grid cells using the SPECFEm integration weights, but it is also possible to calculate the kernels on the wavefield points.
+
+ The code is parallelized and shares the displacement fields on the wavefield points among the processes in the same way as SPECFEM does. For this reason, it is mandatory to use the same number of processes as used for the SPECFEM runs. This requirement is checked by the code. The code loops over the Fourier frequencies specified in the iteration parameter file and opens a HDF file to which sensitivity kernels for all paths and components are written. Then it loops over tha paths listed in the data-model-space file and computes the kernels for all specified components and material properties. In the HDF file, the kernels are stored as 3-dimension arrays with the dimensions grid cells, properties and components. The individual HDF-datasets can be accessed by their path name. In case, kernels for a specific path, property or component are desired, a separate data-model-space file should be set up.
+
+ The command-line arguments are:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-wp+: a flag indicating if the kernels are computed on the wavefield points only.
+   \item \verb+-ifreq+: a frequency index at which the kernel should be calculated. Default is all frequency indices.
+ \end{itemize}
+
+For plotting a kernel may be thrown onto a 3D regular spherical grid using the program \verb+throwKernelOnVgrid+. With the program \verb+computeRegularsphericaGridSlices+ and by setting up a text file specifying the slices, various horizontal or vertical slices can be extracted from the 3D grid and plotted using \verb+plotSliceRegularSphericalGrid+.
+
+ VTK-files for sensitivity kernels may be produced using the executable \verb+kernel2vtk+. It accepts the following command line arguments:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-evid+: an event identification string specifiying the event-part of the path,
+   \item \verb+-staname+: a network-station name specifying the station component of the path,
+	\item \verb+-comp+: a vector specifying receiver components,
+	\item \verb+-prop+: a vector specifying property names,
+	\item \verb+-ifreq+: a vector specifying frequency indices, or
+	\item \verb+-all_ifreq+: indicating to walk through all frequencies listed in the ietration parameter file,
+   \item \verb+-wp+: a flag indicating that kernels on the wavefield points are plotted and expected to exist,
+	\item \verb+-norm+: a flag indicating if kernels are normalized to 1.
+ \end{itemize}
+
+Please note, that the output VTK files (one for every frequency) might get large, dependent on the resolution of the inversion grid, since the geometry information of the inversion grid cells is contained in each VTK file. If the files become too large for you, you might consider setting \verb+DEFAULT_VTK_FILE_FORMAT = BINARY+ in your main parameter file.
+
+Alternatively, kernels may be plotted by first throwing them onto a 3D regular spherical grid using \verb+throwKernelOnVgrid+, then extract horizontal or vertical slices using \\
+\verb+computeRegularSphericalGridSlices+ and plot them using \\
+\verb+plotSliceRegularSphericalGrid.py+. Slices are defined in a text file whose format is described in the \verb+computeRegularSphericalGridSlices+. This file is read by both the Fortran and the Python code.
+%
+\subsection{Fourier transforming of synthetic SPECFEM seismograms}
+%
+The Fourier transform of the synthetic SPECFEM seismograms is done event-wise by the executable program \verb+transformSpecfemSynthetics+. It transforms the synthetic seismograms written by SPECFEM after running a kernel displacement forward simulation, again assuming that the first sample corresponds to zero time. Comparison with GEMINI synthetics has shown that the small negative time at which SPECFEM synthetics start should be ignored. The first sample of the seismograms corrsponds to source time plus reduction time which serves as origin for the time axis in the inversion.
+ The program reads the ASKI main parameter file from which it takes the number and values of frequencies where the Fourier transform is evaluated. It also takes the geographical coordinates of the SPECFEM box center (identical to the center of the inversion grid) from there. These are needed to transform from SPECFEM cartesian to ZNE components. The location of the SPECFEM synthetics is guessed from the ASKI parameter \verb+PATH_KERNEL_DISPLACEMENTS+. The file name is constructed from netcode, station name, band code, component and seismogram type. The latter two are command line arguments. After Fourier transform a rotation to ZNE components is done and results are written as a single HDF file to the ASKI folder \verb+PATH_SYNTHETIC_DATA+ following the file name convention \verb+syn_comp.hdf+. Individual spectra can be accessed by their pathname.
+
+ The command-line arguments are:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-comp+: a component name specifying the seismogram component,
+	\item \verb+-sem+: the SPECFEM synthetics file extension to be used (semd,semv,sema).
+ \end{itemize}
+%
+\subsection{Decomposing the data space}
+%
+To simplify the parallelization of the kernel equation system, the program \verb+decomposeDmspace+ is used to split the data space into equal path portions which are later shared among the processes. It outputs a set of data-model-space files containing these paths. The number of processes is defined by the parameter \verb+NPROC+ of the iteration parameter file.
+
+ The command-line arguments are:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item the name of the data-model-space file.
+ \end{itemize}
+ The output filenames are formed from the name of the input data-model-space file extended by the rank of the process.
+%
+\subsection{Solve the kernel system}
+\label{sec:solve-kernel-system}
+%
+ This is the decisive step in which the current model is updated by solving the linear kernel equation system. We use the executable \verb+solveCGLSKernelSystem+ which uses the conjugate gradient approach to solve the equation system. This is the fastest way to obtain a solution.
+ The conjugate gradient allgorithm is parallelized, simply sharing the rows of the kernel system matrix among the processes. The number of processes is defined by the parameter \verb+NPROC+ of the iteration parameter file.
+
+ The program first gets all the relevant paths and file names from the main and iteration parameter files. Then, it reads the set of data-model-space  files which define the data and a such also the rows of the kernel system matrix associated with the different processes. Based on this information, it reads the measured data, the synthetic data and fills the kernels matrix by reading the required sensitivity kernels. Finally, it computes the difference between data and synthetics as right hand side of the kernel equation system. Based on information on the model space and the inversion grid, it sets up the regularization equations for damping and smoothing in an efficient and also parallelized way by only dealing with the non-zero entries and sharing matrix rows among the processes. Then, the CGLS iteration is started until the max number of iteration is reached or the convergence criterion is satisfied. After that, the solution is converted to a so-called ``kernel inverted model (kim)'' and written as HDF to \verb+PATH_OUTPUT_FILES+. VTK files of absolute and relative perturbations are also produced. The ``kim''-file can be used with the ``model-aski'' feature of SPECFEM's \verb+generate_databases+ to feed back the model into SPECFEM and begin a new full waveform iteration.
+
+ The command-line arguments are:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item the name of the data-model-space file,
+   \item \verb+-startsol+: the name of a ``kim''-file containing a starting model for the inversion step,
+   \item \verb+-normalize+: a flag indicating a path and component-wise normalization of the data using previously deternmined noise levels.
+ \end{itemize}
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\subsubsection{Parameters related to the CGLS solver}
+%- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\begin{description}
+\setlength{\itemsep}{-0.0cm}
+\item \verb+NPROC+: number of processes sharing the rows of the kernel system matrix.
+\item
+\verb+VSCAL_SMOOTHING+: specifies a global scaling factor per material property to be inverted for which is multiplied on the regularization equations for smoothing. Model component specific weighting if regularization equations is not yet implemented.
+\item
+\verb+VSCAL_DAMPING+: specifies a global scaling factor per material property to be inverted for which is multiplied on the regularization equations for damping. Model component specific weighting if regularization equations is not yet implemented
+\item
+\verb+MAX_NUM_CG_ITERATIONS+: This integer gives the upper limit of number of iterations (CG algorithm will stop then, even if convergence criterion is not yet met). This mechanism cannot be switched off! So, set to a ridiculously high value if you don't want to use it.
+\item
+\verb+NITER_WINDOW_STA, NITER_WINDOW_LTA+: These two integers define window sizes of short-term average (\verb+sta+) and long-term average (\verb+lta+) of the residual norm of the linear system, which are used to evaluate a termination criterion of the conjugate-gradient algorithm. The algorithm assumes a monotonically decreasing residual norm, i.e.\ \verb+sta < lta+. It terminates when \verb+sta+/\verb+lta+ equals 1 (in terms of single precision), i.e.\ when \verb+sta+ becomes close enough to \verb+lta+, or when \verb+lta+ is not monotonically decreasing anymore, i.e.\ starts to increase.
+The numbers \verb+NITER_WINDOW_STA, NITER_WINDOW_LTA+ define the number of iterations over which the averrages are computed. Which values are sensible actually depends on the linear system. The termination checks based on \verb+sta+, \verb+lta+ cannot be taken into account before iteration
+\verb+NITER_WINDOW_LTA + 1+. It is required to define \verb+NITER_WINDOW_STA < NITER_WINDOW_LTA+.
+A ratio of \verb+NITER_WINDOW_LTA/NITER_WINDOW_STA = 10+ was experienced to be feasible. E.g.\ define \verb+NITER_WINDOW_STA = 20+ and \verb+NITER_WINDOW_LTA = 200+.
+\end{description}
+%
+\subsection{Start a new iteration}
+\label{sec:start-new-iteration}
+%
+To start a new iteration, perform the following steps. Use \verb+runAskiProgram.py+ to submit most of the tasks. It will create log files and put them into the right folder. It will also copy the text-files in Specfem's \verb+OUTOUT_FILES+ folder to the iteration specific \verb+specfem_logs+ folder.
+\begin{enumerate}
+   \item change the current iteration in the main parameter file,
+   \item run \verb+createIterationFolders+ to create new folders and the new iteration parameter file (copied either from templates or from the previous iteration),
+   \item check the new iteration parameter file and edit if necessary, in particular if you want to change the frequencies,
+   \item delete old kernel displacements and kernel Green tensors to save disk space but keep the synthetic seismograms and the sensitivity kernels,
+   \item run \verb+prepare_specfem_kernel.py --disp+ to create new SPECFEM and ASKI parameter files for computation of kernel displacements; the velocity model is taken either from the previous iteration or, in case of a starting model at the beginning, from the first iteration. These models are expected in the \verb+output_files+ folder of the respective iteration.
+   \item run \verb+xgenerate_databases+ to install the new model in the SPECFEM databases,
+   \item run \verb+xspecfem3D+ to get kernel displacements and synthetic seismograms
+   \item run  \verb+prepare_specfem_kernel.py --gt+ to create new SPECFEM and ASKI parameter files for computation of kernel Green tensors;
+   \item run \verb+xspecfem3D+ to get kernel Green tensors
+   \item While SPECFEM-GT is running,
+   \begin{enumerate}
+      \item run \verb+transformSpecfemSynthetics+ to get new synthetic spectral values for the inverted model of the previous iteration and redirect output to the iteration's \verb+output_files+ folder,
+      \item  copy the (masked) dmspace-file of the previous iteration to the current one with name \verb+ASKI_dmspace+. In case you changed the frequencies you may anyway use this copied dmspace-file to obtain the misfit for the model produced in the previous iterations.
+      \item run \verb+computeMisfits+ to obtain new misfits and also a new masked dmspace file,
+      \item rerun \verb+computeMisfits+ with the \verb+-masked+ option to obtain misifts for the cleaned data,
+      \item check misfits for individual events by running \verb+plotMisifts.py+,
+      \item If frequencies have been changed:
+      \begin{enumerate}
+         \item run \verb+createDmspaceFile.py+ to produce a new one.
+         \item run \verb+computeMisfits+ to obtain new misfits and also a new masked dmspace file,
+         \item rerun \verb+computeMisfits+ with the \verb+-masked+ option to obtain misifts for the cleaned data,
+         \item check misfits for individual events by running \verb+plotMisifts.py+,
+      \end{enumerate}
+      \item repeat dmspace creation and misfit calculations for other frequency sets,
+      \item check misfit versus norm curve using \verb+plotMisfitVersusNorm.py+
+      \item run \verb+decomposeDmspace+ to split the (masked) data model space for later use with the CGLS solver,
+      \item an update of the data spectral values is not required as they are calulated once for all frequencies.
+   \end{enumerate}
+   \item When SPECFEM is finished, run \verb+computeKernelsDmspaceParallel+ to calculate sensitivity kernels,
+   \item run \verb+solveCglsKernelSystem+ to produce a new inverted model.
+   \item run \verb+updateModelPerturbations+ to obtain new total model perturbations,
+   \item run \verb+computeModelNorm+ to get the model norm,
+   \item analyse misfit statistics and data fit using \verb+plotKernelLinearSystemData.py+,
+   \item run \verb+makeModelSlices.py+ to visualize slices through the 3D model.
+\end{enumerate}
+

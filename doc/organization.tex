@@ -1,0 +1,104 @@
+%
+\section{Organizing the the full waveform inversion task}
+%
+\subsection{Main parameter file and inversion folder structure}
+\label{subsec:folder-structure}
+%
+ All input required and output created in ASKI full waveform inversion should be organised in a dedicated folder on a large disk with fast access to the parallel computing environment. We shall refer to this folder as the ``main inversion folder'' in the following. All non-absolute paths mentioned below are relative to this inversion folder. Of course, this folder will have subfolders to organize the puzzling amount of data involved. SPECFEM has its own subfolder and it is very useful also to create a subfolder for GEMINI in- and output. ASKI will also create a specially designed subfolder structure. Please use the inversion folder only for one specific inversion setup. If you make deep-reaching changes, simply create a new one.
+
+ The organisational aspects of full waveform inversion are controlled by a main parameter file with the following content:
+\newpage
+%
+ \begin{longtable}{|p{10.0cm}|c|}\hline
+	\multicolumn{2}{|c|}{\textbf{ASKI related parameters}} \\\hline
+	Variable & Recomm. Value \\ \hline
+	\verb+MAIN_PATH_INVERSION+            &   your inversion folder         \\ \hline
+	\verb+PROPERTY_SET_NAME+              &   isoVelocitySI                 \\ \hline
+	\verb+PROPERTY_CORRELATION_FILE+      &   model\_property\_correlation  \\ \hline
+	\verb+CURRENT_ITERATION_STEP+         &   1                             \\ \hline
+	\verb+ITERATION_STEP_PATH+            &   iteration\_step\_             \\ \hline
+	\verb+PARFILE_ITERATION_STEP+         &   iter\_parfile                 \\ \hline
+   \verb+REARTH+                         &   6371000.0                     \\ \hline
+	\verb+INVGRID_CENTER_LAT+             &   46.20                         \\ \hline
+	\verb+INVGRID_CENTER_LON+             &   10.87                         \\ \hline
+	\verb+PATH_GEMINI+                    &   GEMINI/                       \\ \hline
+	\verb+PATH_MEASURED_DATA+             &   ASKI\_data                    \\ \hline
+   \verb+PATH_INJECTION_SEIS+            &   injection\_seismograms/       \\ \hline
+   \verb+FILE_EVENT_LIST+                &   ASKI\_events                  \\ \hline
+   \verb+FILE_STATION_LIST+              &   ASKI\_stations                \\ \hline
+   \verb+MEASURED_DATA_FREQUENCY_STEP+   &   0.01                          \\ \hline
+   \verb+MEASURED_DATA_NUMBER_OF_FREQ+   &   9                             \\ \hline
+   \verb+MEASURED_DATA_INDEX_OF_FREQ+    &   1 2 3 4 5 6 7 8 9             \\ \hline
+   \verb+UNIT_FACTOR_MEASURED_DATA+      &   1                             \\ \hline
+   \verb+DEFAULT_VTK_FILE_FORMAT+        &   ASCII                         \\ \hline
+	\multicolumn{2}{|c|}{\textbf{Paths relative to iteration step folder}}  \\ \hline
+   \verb+PATH_ASKI_MAIN_FILES+           &   aski\_main\_files/            \\ \hline
+   \verb+PATH_KERNEL_DISPLACEMENTS+      &   kernel\_displacements/        \\ \hline
+   \verb+PATH_KERNEL_GREEN_TENSORS+      &   kernel\_green\_tensors/       \\ \hline
+   \verb+PATH_SENSITIVITY_KERNELS+       &   sensitivity\_kernels/         \\ \hline
+   \verb+PATH_SYNTHETIC_DATA+            &   synthetic\_data/              \\ \hline
+   \verb+PATH_OUTPUT_FILES+              &   output\_files/                \\ \hline
+   \verb+PATH_VTK_FILES+                 &   vtkfiles/                     \\ \hline
+	\multicolumn{2}{|c|}{\textbf{SPECFEM specific inversion parameters}}    \\ \hline
+   \verb+PATH_SPECFEM_INPUT +            &   DATA/                         \\ \hline
+   \verb+PATH_SPECFEM_DATABASES +        &   DATABASES\_MPI/               \\ \hline
+   \verb+USE_ASKI_BACKGROUND_MODEL+      &   .true.                        \\ \hline
+   \verb+FILE_ASKI_BACKGROUND_MODEL+     &   ASKI\_ak135\_diehl            \\ \hline
+   \verb+IMPOSE_ASKI_INVERTED_MODEL+     &   .false.                       \\ \hline
+   \verb+FILE_ASKI_INVERTED_MODEL+       &   xxx.kim                       \\ \hline
+   \verb+COMPUTE_ASKI_OUTPUT+            &   .true.                        \\ \hline
+   \verb+ASKI_HDF_OUTPUT+                &   .true.                        \\ \hline
+   \verb+ASKI_USES_GPU+                  &   .true.                        \\ \hline
+   \verb+ASKI_type_inversion_grid+       &   4                             \\ \hline
+   \verb+ASKI_wx+                        &   1800000.                      \\ \hline
+   \verb+ASKI_wy+                        &   1350000.                      \\ \hline
+   \verb+ASKI_wz+                        &    600000.                      \\ \hline
+   \verb+ASKI_rot_X+                     &   0.0                           \\ \hline
+   \verb+ASKI_rot_Y+                     &   0.0                           \\ \hline
+   \verb+ASKI_rot_Z+                     &   0.0                           \\ \hline
+   \verb+ASKI_cx+                        &   0.0                           \\ \hline
+   \verb+ASKI_cy+                        &   0.0                           \\ \hline
+   \verb+ASKI_cz+                        &   -300000.0                     \\ \hline
+ \end{longtable}
+%
+ Most relevant for organisational tasks are the path variables starting with the main inversion path. One of its important subfolders is the iteration step path whose name is appended by the current iteration step number to the form \verb+iteration_step_001+. \verb+PATH_GEMINI+ points to a subfolder where all GEMINI-related material is placed. The injection seismograms produced by GEMINI go to a separate folder given by \verb+PATH_INJECTION_SEIS+. All paths in the second block of the table are relative to the iteration step folder and contain material as described by the name of the parameter. \verb+PATH_OUTPUT_FILES+ is conceived for a variety of smaller files produced by the ASKI executables which do not go into the dedicated subfolders such as waveform kernels and displacement fields. \verb+PATH_VTK_FILES+ is reserved for VTK-files used for visualization purposes. Finally, the third block contains parameters relevant when performing forward computations using the SPECFEM code. It contains the paths to SPECFEM input data and to the SPECFEM parallel databases. The script \verb+createIterationFolders.py+ creates all the required folders in the inversion directory and also copies the template parameter files to their appropriate places. It takes the following command line arguments:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item the name of the template directory in the source code,
+   \item \verb+--citer+: the index of the current iteration.
+ \end{itemize}
+If the iteration index is greater than 1, the script only creates a new iteration directory and its subfolders.
+%
+\begin{actionbox}[label={action:inversion-folder},float=h!]{Main inversion folder and main parameter file}
+   Create the inversion folder on a large disk attached to the parallel environment and also the GPUs. Copy the template of the main parameter file from the source code distribution's folder \verb+templates+, to the main inversion folder. Then, fill the main parameter file with meaningful values, especially make decisions about all the path names. Once you feel save about these names, run the script \verb+createIterationFolders.py+.
+\end{actionbox}
+%
+\subsection{A 1D background earth model}
+%
+  SPECFEM forward computations and the calculation of injection seismograms using GEMINI should be done with an identical background model to avoid jumps at the boundaries of SPECFEM's computational box. SPECFEM and ASKI offer the opportunity to overlay this model later by a 3D tomographic model either before or during inversion. An ASKI background model is a table of values specifying depth, density, P- and S-velocity, shear Q and bulk modulus Q at nodes, all values given in SI units, for example:
+\begin{verbatim}
+	PREM as ASKI 1D background model
+	0.0
+	4
+	2 2 3 3
+	0.000       2600.000    5800.000   3200.000   600.000   57823.000
+	15000.000   2600.000    5800.000   3200.000   600.000   57823.000
+	15000.000   2900.000    6800.000   3900.000   600.000   57823.000
+	25000.000   2900.000    6800.000   3900.000   600.000   57823.000
+	25000.000   3380.683    8110.246   4490.786   600.000   57823.000
+	52500.000   3377.694    8093.247   4480.651   600.000   57823.000
+	80000.000   3374.706    8076.248   4470.515   600.000   57823.000
+	80000.000   3374.706    8076.248   4470.515    80.000   57823.000
+	115000.000  3370.902    8054.613   4457.616    80.000   57823.000
+	150000.000  3367.098    8032.978   4444.716    80.000   57823.000
+\end{verbatim}
+%
+ The first line is a free header line, the second line specifies a variable called \verb+zmax+ which is NOT used in ASKI's \verb+model_aski+-code if mapping to a spherical chunk is done. The third line gives the number of layers with layer boundaries marked by double nodes, and the fourth line gives the number of nodes per layer. The ASKI external model extension to SPECFEM uses a layerwise spline interpolation to evaluate model values between the nodes. Put these model files into the DATA folder. There is a python script ``convertPolypremToASKIBackground.py'' in the geminiUnified-package which produces such a file from the PREM polynomial model.
+
+ Once the background model is set up, it is possible to create a Gemini node earth model using the script \verb+convertASKIBackgroundToJson.py+ in the \verb+geminiUnified/python+ source folder. Check this model carefully using \verb+plotNodeEarthmodel+ because Gemini will use splines for interpolation and unwanted oscillations may arise if the values vary too irregularly with depth. Put it into the Gemini subfolder.
+%
+\begin{actionbox}[label={action:aski-background},float=h!]{ASKI background model}
+   Set up an ASKI background model, convert it using the script \verb+convertASKIBackgroundToJson.py+ to a JSON-file and plot it using \verb+plotNodeEarthmodel+. Carefully check for unwanted oscillations caused by the spline interpolation. Eventually, insert further nodes or discontinuities to remove them. Put the ASKI background model into the \verb+DATA+ folder and the converted JSON file into the GEMINI folder.
+\end{actionbox}
+%

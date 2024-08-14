@@ -1,0 +1,191 @@
+#==============================================================================================
+# The entries in this file are either filled by the Python script prepare_specfem_kernel.py
+# or variables are changed during the Specfem run if the multiple-sources capability is used.
+# Do not make any manual entries in this file!
+#====================================================================================
+#                              ASKI EXTERNAL MODEL
+#
+# import inverted models to SPECFEM3D_Cartesian
+#====================================================================================
+# First the SPECFEM3D model is set, as defined by standard SPECFEM mechanisms (defined in Par_file). 
+# Then, ONLY IF INDICATED BELOW, this model is overwritten by the ASKI 1D background model at all depths where it is defined. 
+# After that, ONLY IF INDICATED BELOW, an ASKI inverted model is superimposed to the existing model (will define absolute values, 
+# but at the boundaries of the inversion domain it will smooth out to the existing model)
+#
+# USE_ASKI_BACKGROUND_MODEL indicates whether SPECFEM3D_Cartesian should use the 1D reference model as defined in
+# the file given by character string FILE_ASKI_BACKGROUND_MODEL , absolute path .
+# (will simply overwrite model values on all GLL points, dependent on depth (or rather radius).
+# --------------------------------------------
+  USE_ASKI_BACKGROUND_MODEL = .true.
+  FILE_ASKI_BACKGROUND_MODEL = DATA/ASKI_ak135_diehl
+# --------------------------------------------------------------------
+# IMPOSE_ASKI_INVERTED_MODEL indicates whether SPECFEM3D_Cartesian should impose the ASKI inverted model as
+# defined in the file given by character string FILE_ASKI_INVERTED_MODEL, absolute path.
+# This model will be set in the region of the inversion grid, where it was derived.
+# ---------------------------------------------------------
+  IMPOSE_ASKI_INVERTED_MODEL = .true.
+  FILE_ASKI_INVERTED_MODEL = iteration_step_001/output_files/total_absdev_model.kim
+#=====================================================================================
+#                                 ASKI OUTPUT
+#
+# producing kernel green tensor / kernel displacement files
+#=====================================================================================
+# parameter COMPUTE_ASKI_OUTPUT controls if any ASKI output files (i.e. kernel green tensor / 
+# kernel displacement files) are produced
+# 
+  COMPUTE_ASKI_OUTPUT = .true.
+# ----------------------------------------------------------------------
+# Choose if computation of strains and Fourier transform for ASKI output
+# is also done on GPU (no effect if in Par_file GPU_MODE = .false.)
+# 
+  ASKI_USES_GPU = .true.
+# ---------------------------------------------------------------------
+# Decide, whether to ONLY produce the main ASKI output file (at the beginning of this simulation, filename 'ASKI_outfile.main') 
+# This can be useful if you want to first run initBasics to check the ASKI output volume and the background model etc.
+#
+  ASKI_MAIN_FILE_ONLY = .false.
+# ----------------------------------------------------------------------
+# Decide whether to write the ASKI main file or not. When using the same mesh and also earth model for all events
+# the main file needs to be written only once and for all. 
+# 
+  ASKI_MAIN_FILE_WRITE = .true.
+# -------------------------------------------------------------------------
+# set the path to the ASKI main file. 
+# Do not forget to enter this name into the iter_parfie and parfile_specfem_inversion_grid.
+# 
+  ASKI_MAIN_PATH = iteration_step_002/aski_main_files/
+# ----------------------------------------------------------------------------  
+# absolute output filename including absolute path (will be used to open the output file as is),
+# i.e. in case of a green tensor simulation, outfile should contain the extension "_[green_tensor_component]"
+# ASKI_outfile is handled as a basename, to which ".main" and for each frequency ".jf######" 
+# (e.g. ".jf000013" for frequency index 13) is appended
+# (ignored in multiple sequential sources mode)
+# 
+  ASKI_outfile = will be overwritten
+# ---------------------------------------------------------------------------------------
+# id of ASKI output (e.g. eventID, station name plus component, etc.)
+# 
+  ASKI_output_ID = will be overwritten
+# ---------------------------------------------------------------------------------
+# choose to deconvolve the derivative of the source time function from the wavefield spectra before writing them to files.
+# select .true. for any Green function computations!
+# even if a heaviside source time function is used, the velocity field is not exactly a Green function ( = displacement wavefield
+# w.r.t. an impulse source time function), since a steep error function is used by SPECFEM to resemble a quasi-heaviside function.
+# this steep error function, furthermore, is dependent on timestep DT! 
+# hence, only by deconvolution of (the derivative of) this quasi-heaviside source time function, the real Green function, 
+# which is independent of the time step can be computed.
+#
+  ASKI_DECONVOLVE_STF = .false.
+#  --------------------------------------------------------------------------
+# Say if phase end times need to be computed (only on iteration 1)
+# or can be read from file.
+#
+  COMPUTE_PHASE_END_TIMES = .false.
+#  ---------------------------------------------------------------------------
+# Path where phase end times of kdisp and kgt are stored and read from.
+# Path is relative to the inversion main path
+#
+  PATH_PHASE_END_TIMES = phase_end_times/
+#=====================================================================================
+#                      FREQUENCY DISCRETIZATION AND FOURIER TRANSFORM
+#
+#   the double precision df[Hz] and integer values jf have the following meaning:
+#   the spectra are saved for all frequencies f = (jf)*df [Hz]
+#=====================================================================================
+# Predefined frequency step df, that is used to evaluate spectrum (in case we want to do an inverse FT, we need to choose with care
+# df=1/length_of_time_series and suitably high frequency indices (dependent on frequency content), as
+# we could lose periodicity (if in exp^(-i2pi(k)(n)/N) "N" is no integer, these are no roots of 1 anymore)).
+# Save the spectra for frequencies f = (ASKI_jf)*ASKI_df (ASKI_nf many)
+#
+  ASKI_df = 0.005
+  ASKI_nf = 4
+  ASKI_jf = 6 8 10 12
+# -----------------------------------------------------------------------------------------------
+# Choose the method of Discrete Fourier Transform:
+# EXPLICIT_SUMMATION : on-the-fly summation of complex values s(t)*exp^(-i*2pi*f*t) 
+#                      (slightly more memory efficient than GOERTZEL_STANDARD)
+# GOERTZEL_STANDARD: using Goertzel's algorithm, only half the number of multiplications compared with EXPLICIT_SUMMATION
+#                    -> BUT overall speed-up compared with EXPLICIT_SUMMATION is not noticeable for small tested examples
+#
+  ASKI_DFT_method = EXPLICIT_SUMMATION
+# --------------------------------------------------------------------------------------------------------------
+# Choose precision of Discrete Fourier Transform. If there is enough memory available, it is highly recommended
+# to use ASKI_DFT_double = .true. in which case double precision spectral values are held in memory (single
+# precision is written to file, though, but less roundoffs during summation).
+# Otherwise choose ASKI_DFT_double = .false. in which case single precision spectral values will be used in memory.
+# The wavefield point-independent transformation coefficients exp^(-i*2pi*f*t) (or values Wr in case of Goertzel)
+# are always in double precision!
+# For use with GPU, single precision is required.
+#
+  ASKI_DFT_double = .false.
+# --------------------------------------------------------------------------------------------------------------
+# Decide whether the time series is tapered by a hanning taper at the end of the phase window (and zeroed beyond)
+# before (i.e. on-the-fly while) applying the discrete Fourier transform. If false, an end taper is applied.
+#
+  ASKI_DFT_apply_taper = .true.
+# ---------------------------------------------------------------------------
+# File with travel time table to be used for calculating travel times needed
+# to apply phase window tapers. It can be either a P-times or an S-times table.
+# By choosing an S-table in Green tensor calculations we get both P and S scattering.
+# Note: travel times are only used if ASKI_DFT_apply_taper is true!
+#
+  ASKI_TTIME_TABLE_FILE = GEMINI/ray-table-P-drtp1-rmax5710-uniqueradii.hdf
+# -------------------------------------------------------------------------------
+# Length of taper in seconds if applied. Applies to both window taper or end of trace taper.
+# The taper is part of the window or the trace. The value may be different for kernel displacement
+#  or kernel Green tensor calculations
+#
+  ASKI_DFT_taper_length = 10.0
+#=========================================================================================================
+#                                   INVERSION GRID
+#=========================================================================================================
+# ASKI supports several types of inversion grids for FORWARD_METHOD = SPECFEM3D:
+#
+# ASKI_type_inversion_grid = 4, (TYPE_INVERSION_GRID = specfem3dInversionGrid)
+#    use SPECFEM elements as inversion grid:
+#    wavefield points are ALL GLL points of an element for elements which are (at least partly) inside the
+#    volume defined by ASKI_(cw)(xyz)
+#    additionally store the jacobians for all wavefield points
+#    assume ncell = ntot_wp/(NGLLX*NGLLY*NGLLY) as the number of inversion grid cells, and the order of
+#    wavefield points accordingly (do k=1,NGLLZ; do j=1,NGLLY; do i=1,NGLLX; ip=ip+1 ....)
+#
+# Dependent on ASKI_type_inversion_grid, (a selection of) the following parameters may be used to define a volume 
+# within which wavefield points are searched for:
+#
+# First, ASKI_wx,ASKI_wy,ASKI_wz define the total width of a block which is centered in x=y=z=0
+#    e.g. the total block extension in x-direction covers all points with 
+#    x >= - 0.5*ASKI_wx and
+#    x <=  0.5*ASKI_wx
+# Then, ASKI_rot_X,ASKI_rot_Y,ASKI_rot_Z define rotation angles in degrees by which the block is rotated (anti-clockwise)
+# about the Z, Y and X coordinate axis,
+# before ASKI_cx,ASKI_cy,ASKI_cz define a vector by which the rotated block is shifted (new center of block)
+#  ---------------------------------------------------------------------------
+#  Absolute coordinates of center of inversion grid in degrees
+#  For geographical reference and import of a starting model
+#
+   ASKI_lat_box_center = 46.2
+   ASKI_lon_box_center = 10.87
+   ASKI_rearth = 6371000.0
+#------------------------------------------------------------------------------------
+# type of inversion grid, in order to produce correct output
+# --------------------------------
+  ASKI_type_inversion_grid = 4
+# --------------------------------
+# width of ASKI output volume
+# --------------------------------
+  ASKI_wx = 1800000.0
+  ASKI_wy = 1350000.0
+  ASKI_wz =  600000.0
+# -------------------------------------------------------------
+# rotation angles in degrees of block about the respective axes
+# -------------------------------------------------------------
+  ASKI_rot_X = 0.0
+  ASKI_rot_Y = 0.0
+  ASKI_rot_Z = 0.0
+# ----------------------------
+# center of ASKI output volume
+# ----------------------------
+  ASKI_cx = 0.0
+  ASKI_cy = 0.0
+  ASKI_cz = -300000.0
+# ----------------------------

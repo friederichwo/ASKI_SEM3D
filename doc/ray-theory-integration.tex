@@ -1,0 +1,174 @@
+\section{Kernel integration of ray-theoretical wavefields}
+%
+To compute sensitivities for model perturbations in an inversion cell, ASKI uses displacements fields from the earthquake source and Green displacements fields emanating from the receiver position that are both available on the wavefield points. ASKI first calculates sensitivity kernels on the wavefield points and then integrates these over the inversion cell. We denote displacements from the source by a superscript $s$, $\v{u}^s$ for ``source'' and displacements from the receiver with a superscript $r$, $\v{u}^r$. We add superscripts in the same way to expressions for strain. The kernels on the wavefield points are given by the following expressions in Cartesian components:
+%
+\begin{align}
+   k^{sr}_{\lambda} &= -(e^r_{11}+e^r_{22}+e^r_{33})(e^s_{11}+e^s_{22}+e^s_{33}) \notag \\
+   k^{sr}_{\mu} &= -2(e^r_{11}e^s_{11}+e^r_{22}e^s_{22}+e^r_{33}e^s_{33})
+                  -4(e^r_{23}e^s_{23}+e^r_{13}e^s_{13}+e^r_{12}e^s_{12}) \notag \\
+   k^{sr}_{\rho} &= \omega^2 u^s_j u^r_j \,,
+\end{align}
+%
+where the summation convention applies in the density kernel and
+%
+\begin{align}
+   e^{s,r}_{ij} &= \frac{1}{2}(\partial_j u^{s,r}_i + \partial_i u^{s,r}_j) \,.
+\end{align}
+
+In ray theory, displacement components are given in the form $A_j e^{iwT}$ where both the amplitude $A_j$ and the travel time $T$ are functions of position and available at the grid points of the propagation grid. For convenience, we define an inversion cell as follows: its center coincides with a grid point and the cell extension along each spatial direction is one grid spacing. Thus, there is only one wavefield point per inversion cell which is identical to the cell center. We assume that the amplitude is constant within the cell and that travel time varies linearly:
+%
+\begin{align}
+   u^{s,r}_j &= A^{s,r}_j e^{i\omega (T^{s,r}_0+\v{p}^{s,r}\cdot(\v{r}-\v{r_0}))} \,.
+\end{align}
+%
+Here, $\v{r}_0$ is the position of the cell center and $T_0$ the travel time there. A product of the two displacements has then the form:
+%
+\begin{align}
+   u^s_j u^r_j &= A^s_j A^r_j e^{i\omega (T^s_0+T^r_0+(\v{p}^s+\v{p}^r)\cdot(\v{r}-\v{r_0}))} \,.
+\end{align}
+%
+Strains are obtained as
+%
+\begin{align}
+   e^{s,r}_{ij} &= \frac{1}{2}i\omega(A^{s,r}_i p^{s,r}_j + A^{s,r}_j p^{s,r}_i) e^{i\omega (T^{s,r}_0+\v{p}^{s,r}\cdot(\v{r}-\v{r_0}))} =
+             E^{s,r}_{ij} e^{i\omega (T^{s,r}_0+\v{p}^{s,r}\cdot(\v{r}-\v{r_0}))} \,.
+\end{align}
+%
+Thus, all products of displacements or strains can be written as $Ae^{i\omega(T_0+\v{q}\cdot(\v{r}-\v{r}_0))}$ with different explicit meanings of $A$ depending on the specific term considered and $\v{q}=\v{p}^s+\v{p}^r$. Since $A$ is considered constant in a cell, the task is to integrate the expression $e^{i\omega(T_0+\v{q}\cdot(\v{r}-\v{r}_0)))}$ over an inversion cell. In this way, the sensitivity kernel becomes frequency dependent because the value of the integral depends decisively on the variation of the phase within the cell. This integration can be done analytically.
+
+We consider the cell as a little spherical chunk of radius $\Delta r$ and angular widths $\Delta\theta$ and $\Delta\phi$. In spherical coordinates, we find
+%
+\begin{align}
+   \v{r}-\v{r}_0 = (r-r_0)\v{e}_r+r_0(\theta-\theta_0)\v{e}_{\theta}+r_0\sin\theta_0(\phi-\phi_0)\v{e}_{\phi} \,,
+\end{align}
+%
+where the basis vectors are also taken at the cell center. Moreover,
+%
+\begin{align}
+   \v{q}\cdot(\v{r}-\v{r}_0) = q_r(r-r_0)+q_{\theta}r_0(\theta-\theta_0)+q_{\phi}r_0\sin\theta_0(\phi-\phi_0) \,.
+\end{align}
+%
+After performing the substitutions $\v{r}'=\v{r}-\v{r}_0$, $r'= r-r_0$, $\theta'=\theta-\theta_0$ and $\phi'=\phi-\phi_0$, we want to calculate the integral
+%
+\begin{align}
+   J &= A\int_{-\Delta r/2}^{\Delta r/2}\int_{-\Delta \theta/2}^{\Delta \theta/2}\int_{-\Delta \phi/2}^{\Delta \phi/2}
+       e^{i\omega(T_0+\v{q}\cdot\v{r}')}\,(r'+r_0)^2\sin(\theta'+\theta_0)\,dr'\,d\theta'\,d\phi' \notag \\
+   &= A\int_{-\Delta r/2}^{\Delta r/2}\int_{-\Delta \theta/2}^{\Delta \theta/2}\int_{-\Delta \phi/2}^{\Delta \phi/2}
+       e^{i\omega T_0}e^{i\omega q_r r'}e^{i\omega q_\theta r_0\theta'}e^{i\omega q_\phi r_0\sin\theta_0\phi'}\,
+       (r'+r_0)^2\sin(\theta'+\theta_0)\,dr'\,d\theta'\,d\phi' \notag \\
+   &= Ae^{i\omega T_0}\int_{-\Delta r/2}^{\Delta r/2}e^{i\omega q_r r'}(r'+r_0)^{2}\,dr'
+      \int_{-\Delta \theta/2}^{\Delta \theta/2}e^{i\omega q_\theta r_0\theta'}\sin(\theta'+\theta_0)\,d\theta'
+      \int_{-\Delta \phi/2}^{\Delta \phi/2} e^{i\omega q_\phi r_0\sin\theta_0\phi'}\,d\phi'\,.
+\end{align}
+%
+Since $r'$, $\theta'$ and $\phi'$ are small quantities varying around the cell center, we may use linear approximations as follows:
+%
+\begin{align}
+(r'+r_0)^2 = r_0^2+2r_0 r' \quad\mathrm{and}\quad \sin(\theta'+\theta_0) = \sin\theta_0+\theta'\cos\theta_0 \,,
+\end{align}
+%
+and finally obtain
+%
+\begin{align}
+   J &= Ae^{i\omega T_0}\int_{-\Delta r/2}^{\Delta r/2}e^{i\omega q_r r'}(r_0^2+2r_0 r')\,dr'
+      \int_{-\Delta \theta/2}^{\Delta \theta/2}e^{i\omega q_\theta r_0\theta'}(\sin\theta_0+\theta'\cos\theta_0)\,d\theta'
+      \int_{-\Delta \phi/2}^{\Delta \phi/2} e^{i\omega q_\phi r_0\sin\theta_0\phi'}\,d\phi'\,.
+\end{align}
+%
+Thus, the integral of any product of displacements or strains can be written as the value of the product at the cell center times the product of three weights given by the integrals over radius and angles, respectively:
+%
+\begin{align}
+   w_r &= \int_{-\Delta r/2}^{\Delta r/2}e^{i\omega q_r r'}(r_0^2+2r_0 r')\,dr' \notag \\
+   w_\theta &= \int_{-\Delta \theta/2}^{\Delta \theta/2}e^{i\omega q_\theta r_0\theta'}(\sin\theta_0+\theta'\cos\theta_0)\,d\theta' \notag \\
+   w_\phi &= \int_{-\Delta \phi/2}^{\Delta \phi/2} e^{i\omega q_\phi r_0\sin\theta_0\phi'}\,d\phi'\,.
+\end{align}
+%
+
+Thus, we need to solve integrals of the forms
+%
+\begin{align}
+J_1 =  \int_{-h/2}^{h/2}e^{i\omega q s}\,ds \quad\mathrm{and}\quad J_2 = \int_{-h/2}^{h/2}s e^{i\omega q s}\,ds \,.
+\end{align}
+%
+Solutions are
+%
+\begin{align}
+J_1 &= \int_{-h/2}^{h/2}e^{i\omega q s}\,ds = \left[\frac{e^{i\omega q s}}{i\omega q}\right]_{-h/2}^{h/2} =
+       \frac{1}{i\omega q}\left(e^{i\omega q h/2} - e^{-i\omega q h/2}\right) \notag \\
+    &= \frac{2}{\omega q}\sin\frac{\omega qh}{2} =  h\frac{\sin\frac{\omega qh}{2}}{\frac{\omega qh}{2}} = h\,j_0(\frac{\omega qh}{2}) \,,
+\end{align}
+%
+where $j_0(x)$ is the spherical Bessel function of zeroth order. Using partial integration,
+%
+\begin{align}
+J_2 &= \int_{-h/2}^{h/2}s e^{i\omega q s}\,ds =
+       \left[\frac{s e^{i\omega q s}}{i\omega q}\right]_{-h/2}^{h/2}-\frac{1}{i\omega q}\int_{-h/2}^{h/2}e^{i\omega q s}\,ds \notag \\
+    &= \frac{1}{i\omega q}\left(\frac{h}{2}e^{i\omega q h/2} + \frac{h}{2}e^{-i\omega q h/2}
+       -\frac{2}{\omega q}\sin\frac{\omega qh}{2}\right) \notag \\
+    &= \frac{1}{i\omega q}\left(h\cos\frac{\omega q h}{2}-\frac{2}{\omega q}\sin\frac{\omega qh}{2}\right) \notag \\
+    &= \frac{h}{i\omega q}\left(\cos\frac{\omega q h}{2}-\frac{2}{\omega qh}\sin\frac{\omega qh}{2}\right) \notag \\
+    &= \frac{-ih^2/2}{\omega qh/2}\left(\cos\frac{\omega q h}{2}-\frac{2}{\omega qh}\sin\frac{\omega qh}{2}\right) \notag \\
+    &= \frac{-ih^2}{2}\left(\frac{\cos\frac{\omega q h}{2}}{\omega qh/2}-\frac{\sin\frac{\omega qh}{2}}{(\omega qh/2)^2}\right) \notag \\
+    &= \frac{ih^2}{2}\,j_1(\frac{\omega q h}{2}) \,,
+\end{align}
+%
+where $j_1(x)$ is the spherical Bessel function of first order.
+The first integral is purely real while the second one is purely imaginary. In the limit for $\omega\to 0$, the first integral goes to $h$ and the second one to $0$.
+
+The weights can now be written as
+\begin{align}
+   w_r &= r_0^2(J_1(q_r,\Delta r)+\frac{2}{r_0}\,J_2(q_r,\Delta r))
+        = r_0^2\Delta r\left(j_0(\omega q_r\Delta_r/2)+i\frac{\Delta r}{r_0}j_1(\omega q_r\Delta_r/2)\right) \notag \\
+   w_{\theta} &= \sin\theta_0\,J_1(r_0 q_\theta,\Delta\theta) +\cos\theta_0\,J_2(r_0 q_\theta,\Delta\theta) \notag \\
+              &= \sin\theta_0\Delta\theta \left(j_0(\omega r_0 q_\theta\Delta\theta/2)
+                 + i\cot\theta\frac{\Delta\theta}{2}j_1(\omega r_0 q_\theta\Delta\theta/2)\right) \notag \\
+   w_{\phi} &= J_1(r_0\sin\theta_0 q_\phi,\Delta\phi) = \Delta\phi\,j_0(\omega r_0\sin\theta_0 q_\phi\Delta\phi/2)\,.
+\end{align}
+%
+Since $\Delta r/r_0$, $\Delta\theta$ and $\Delta\phi$ have values typically well below $10^{-2}$, the imaginary parts of the weights can be safely neglected. Defining the product of the weights as
+\begin{align}
+   W(\v{q}) =  w_r\,w_\theta\,w_\phi = j_0(\frac{\omega q_r\Delta_r}{2})\,j_0(\frac{\omega q_\theta r_0\Delta\theta}{2})
+               j_0(\frac{\omega q_\phi r_0\sin\theta_0\Delta\phi}{2})\,r_0^2\sin\theta_0\Delta r\Delta\theta\Delta\phi \,,
+\end{align}
+%
+and indicating their dependence on the sum of the slowness vectors explcitly,
+then, for example, the integrated density kernel can then be expressed as follows (with summation over index $j$ implied):
+\begin{align}
+   K_{\rho} &= \omega^2\,A^s_j e^{i\omega T^s_0} A^r_j e^{i\omega T^r_0}\,W(\v{p^s}+\v{p}^r)
+             = \omega^2\,u^s_j(\v{r}_0)\,u^r_j(\v{r}_0)\,W(\v{p^s}+\v{p}^r) \notag \\
+            &= \omega^2\,k^{sr}_{\rho}(\v{r}_0)\,W(\v{p^s}+\v{p}^r) \,.
+\end{align}
+%
+If there arrive $N_s$ phases from the source (e. g. direct P wave plus surface P reflection plus surface S conversion) and $N_r$ phases from the receiver position (for example the P and the S wave), we can consider $s$ and $r$ as indices running over these phases and write the kernel as a double sum over all possible $N_s\times N_r$ products of these waves:
+\begin{align}
+   K_{\rho} &= \omega^2\sum_{s=1}^{N_s}\sum_{r=1}^{N_r}\,u^s_j(\v{r}_0)\,u^r_j(\v{r}_0)\,W(\v{p^s}+\v{p}^r) \notag \\
+            &= \omega^2\sum_{s=1}^{N_s}\sum_{r=1}^{N_r}\,k^{sr}_{\rho}(\v{r}_0)\,W(\v{p^s}+\v{p}^r) \,.
+\end{align}
+%
+For the $\lambda$-kernel on the wavefield points, we can write (with summation convention implied):
+\begin{align}
+   k_{\lambda} &= -E^r_{kk} e^{i\omega T^r_0}e^{i\omega\v{q}^r\cdot (\v{r}-\v{r}_0)}
+                   E^s_{mm}e^{i\omega T^s_0}e^{i\omega\v{q}^s\cdot (\v{r}-\v{r}_0)} \notag \\
+               &= -E^r_{kk} e^{i\omega T^r_0}E^s_{mm} e^{i\omega T^s_0}e^{i\omega(\v{p}^r+\v{p}^s)\cdot (\v{r}-\v{r}_0)} \,.
+\end{align}
+Upon integration over the grid cell we get:
+\begin{align}
+   K_{\lambda} &= -E^r_{kk} e^{i\omega T^r_0}E^s_{mm}e^{i\omega T^s_0}\,W(\v{p}^r+\v{p}^s)
+                = -e^r_{kk}(\v{r}_0)e^s_{mm}(\v{r}_0)\,W(\v{p}^r+\v{p}^s) \notag \\
+               &= k^{sr}_{\lambda}(\v{r}_0)\,W(\v{p}^r+\v{p}^s) \,.
+\end{align}
+For multiple waves from source and receiver we can again write the double sum:
+\begin{align}
+   K_{\lambda} &= -\sum_{s=1}^{N_s}\sum_{r=1}^{N_r}\,k^{sr}_{\lambda}(\v{r}_0)\,W(\v{p}^r+\v{p}^s) \,.
+\end{align}
+For the $\mu$-kernel, we can directly write:
+\begin{align}
+   K_{\mu} &= -2(e^r_{11}(\v{r}_0)e^s_{11}(\v{r}_0)+e^r_{11}(\v{r}_0)e^s_{11}(\v{r}_0)+e^r_{11}(\v{r}_0)e^s_{11}(\v{r}_0))\,W(\v{p}^r+\v{p}^s) \notag \\
+           &  -4(e^r_{23}(\v{r}_0)e^s_{23}(\v{r}_0)+e^r_{13}(\v{r}_0)e^s_{13}(\v{r}_0)+e^r_{12}(\v{r}_0)e^s_{12}(\v{r}_0))\,W(\v{p}^r+\v{p}^s)) \notag \\
+           &= k^{sr}_{\mu}(\v{r}_0)\,W(\v{p}^r+\v{p}^s) \,.
+\end{align}
+For multiple waves from source and receiver we can again write the double sum:
+\begin{align}
+   K_{\mu} &= \sum_{s=1}^{N_s}\sum_{r=1}^{N_r}\,k^{sr}_{\mu}(\v{r}_0)\,W(\v{p}^r+\v{p}^s) \,.
+\end{align}
+To compute the integrated kernels, we can follow a very simple rule: Compute the waveform kernel at the center of the cell for all possible combinations of phases from source and receiver, multiply with the total weight calculated for the sum of the corresponding slownesses and sum over all combinations.

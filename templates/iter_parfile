@@ -1,0 +1,194 @@
+#  ------------------------------------------------------------------------------
+#  Frequency discretization of this iteration step, must be subset of global frequency discretization
+#  for this inversion defined in main parameter file
+#  define subset by ITERATION_STEP_NUMBER_OF_FREQ <= MEASURED_DATA_NUMBER_OF_FREQ
+#  and a vector ITERATION_STEP_INDEX_OF_FREQ of frequency indices (of length ITERATION_STEP_NUMBER_OF_FREQ)
+#  for which all indices contained in vector ITERATION_STEP_INDEX_OF_FREQ must also be contained in global
+#  vector MEASURED_DATA_INDEX_OF_FREQ
+#  all indices here are assumed in accordance with the global frequency step MEASURED_DATA_FREQUENCY_STEP
+#
+   ITERATION_STEP_NUMBER_OF_FREQ = 4
+   ITERATION_STEP_INDEX_OF_FREQ = 6 8 10 12
+#  --------------------------------------------------------------------------------------
+#  Do a phase inversion instead of taking real and imaginary part
+#
+   DO_PHASE_INVERSION = .false.
+#  --------------------------------------------------------------------------------------
+#  Model properties to be inverted for (taken from property set specified in main parfile
+#
+   MODEL_PROPERTIES_INVERTED_FOR = vp
+#  ---------------------------------------------------------------------------
+#  The residual scattering time is the difference between the end time of the
+#  observed seismogram relative to injection start time and the sum of the phase end times
+#  of injected and back-propagated wavefields (also relative to injection start time).
+#
+#  Length of taper in seconds to make transition from region where
+#  the residual scattering time (rsc) is greater than zero to where it becomes
+#  less then zero. If rsc < -taper, the kernels are set to zero.
+#
+   RESIDUAL_SCATTERING_TIME_KERNEL_TAPER = 5
+#  ---------------------------------------------------------------------------
+#  P-wave velocity of sediments for altitude correction (in m/s)
+#
+   VP_SEDIMENT = 5000.0
+#  ---------------------------------------------------------------------------
+#  Number of parallel processes for solving kernel system
+#  Should be used consistently with decomposeDmspace and solveCglsKernelSystem
+#
+   NPROC = 40
+#  ---------------------------------------------------------------------------
+#  Upper limit of number of CG-iterations (will stop then, even if convergence criterion is not yet met).
+#  This mechanism cannot be switched off: set to a ridiculously high value if you don't want to use it.
+#  Maximum possible value to be used: approx. 2.147.483.647 (4 byte signed integer)
+#  If you require more iterations, you should modify the program. Otherwise, continue the algorithm
+#  by passing the solution to option -startsol, as described above.
+
+   MAX_NUM_CG_ITERATIONS = 500
+#  ---------------------------------------------------------------------------
+#  Window sizes of short-term average (sta) and long-term average (lta) of the residual norm of the system,
+#  which are used to evaluate a termination criterion of the conjugate-gradient algorithm.
+#  The algorithm assumes a monotonically decreasing residual norm, i.e. sta < lta.
+#  It terminates when sta/lta equals 1 (in terms of single precision), i.e. when sta becomes close enough to lta,
+#  or when lta is not monotonically decreasing anymore, i.e. starts to increase.
+#  The numbers NITER_WINDOW_STA,NITER_WINDOW_LTA define the number of iterations over which the averrages are
+#  computed. Which values are sensible actually depends on the linear system.
+#  The termination checks based on sta,lta cannot be taken into account before iteration NITER_WINDOW_LTA + 1
+#  It is required to define NITER_WINDOW_STA < NITER_WINDOW_LTA.
+#  A ratio of NITER_WINDOW_LTA/NITER_WINDOW_STA = 10 was experienced to be feasible. E.g. define (20/200)
+#
+   NITER_WINDOW_STA = 10
+   NITER_WINDOW_LTA = 50
+#  ------------------------------------------------------------------------------
+#  The data uncertainty is described as f*|d|+noise, where f*|d| is an apriori
+#  calibration error. Specifiy the factor f here.
+#
+   CALIBRATION_ERROR_FACTOR = 0.1
+#  ------------------------------------------------------------------------------
+#  Maximum travel time residual for data masking (in s)
+#
+   MAX_TIME_RESIDUAL = 5.0
+#  ------------------------------------------------------------------------------
+#  Specify one smoothing weight per model property as defined in main parfile
+#  Distinguish between smoothing in crust and mantle
+#  Also define crustal depth for smoothing and damping in meters
+#
+   VSCAL_SMOOTHING_MANTLE = 1.0   5.0e-3   1.0
+   VSCAL_SMOOTHING_CRUST  = 1.0   5.0e-3   1.0
+   CRUSTAL_DEPTH = 60000.0
+#  -------------------------------------------------------------------------
+#  Boost depth smoothing. Here define a factor which multiplies the weight
+#  in front of (m5+m6-2m0) (see linearModelRegularization)
+#
+   DSMBOOST = 5.0
+#  -----------------------------------------------------------------------------
+#  Specify one damping weight per model property as defined in main parfile
+#  Distinguish between damping in crust and mantle
+#
+   VSCAL_DAMPING_MANTLE =   1.0   5.0e-3   1.0
+   VSCAL_DAMPING_CRUST  =   1.0   5.0e-3   1.0
+#  -------------------------------------------------------------------------
+#  Choke model perturbations at lateral model boundaries.
+#  Here define a factor to the damping weight.
+#
+   BOUNDCHOKE = 100.0
+#  ---------------------------------------------------------------------------
+#  Select the VTK geometry type:
+#   'CELLS'          data on inversion grids will be written on the volumetric inversion grid cells
+#   'CELL_CENTERS'   data on inversion grids will be written on the cell center points
+#
+   VTK_GEOMETRY_TYPE = CELLS
+#  ---------------------------------------------------------------------------
+#  Scale vtk geometry coordinates by factor VTK_COORDS_SCALING_FACTOR
+#  this may be helpful if coordinate values (e.g. in m) get so large that they cause problems in paraview
+#
+   SCALE_VTK_COORDS = .false.
+   VTK_COORDS_SCALING_FACTOR = 1.0
+#  -----------------------------------------------------------------------
+#                    S P E C F E M - A S K I
+#  -----------------------------------------------------------------------
+#  Here follow some ASKI specific parameters relevant for running SPECFEM
+#  and used to fill the Par_file_ASKI by prepare_specfem_kernel.py.
+#  These parameters will not be considered by iterationStepBasics.
+#  --------------------------------------------------------------------------
+#  Time step [s] for SPECFEM simulations. Look into output_generate_databases.txt
+#  for hints how to choose this value.
+#
+   DT = 0.14
+#--------------------------------------------------------------------------------
+#  Number of time steps for Specfem computations
+#  Only relevant for kernel Green tensor simulations
+#  For injection, NSTEP is taken from sequential source description
+#  For Green tensor simulation: 
+#     - simulation time need not be greater than the travel time of the direct P-wave
+#       through the box plus the phase window length (= 200 s). 
+#  
+#
+   NSTEP = 1400
+#  --------------------------------------------------------------------------
+#  Half-duration of triangle source time function [s] for SPECFEM Green tensor
+#  simulations which is approximated by a Gaussian. Not relevant for injection.
+#
+   HDUR_GREEN_TENSOR = 5.0
+#  -------------------------------------------------------------------------------
+#  Decide if SPECFEM creates output for wavefield movies
+#
+   MOVIE_SURFACE = .false.
+   MOVIE_VOLUME  = .false.
+#  -------------------------------------------------------------------------
+#  Component of the Green tensor (= direction of single force at receiver position)
+#  Identical to data component to be used for inversion later.
+#  Give here only one. If further components are desired, do additional SPECFEM runs
+#
+   GREEN_TENSOR_COMPONENT = UP
+#  --------------------------------------------------------------------------------
+#  Position of Green tensor source (== station) is shifted downwards away from the
+#  surface to avoid SPECFEM gamma values > 1 and also suppress surface waves a bit.
+#  Set to negative value if not desired.
+#  Unit: m
+#
+   GREEN_TENSOR_DEPTH_SHIFT = 20
+#  --------------------------------------------------------------------
+#  Flag indicates whether SPECFEM3D_Cartesian should impose the ASKI inverted model as
+#  defined in the file given. Path is relative to output_files of previous iteration.
+#  This model will be set in the region of the inversion grid where it is defined.
+#  After running prepare_specfem_kernel.py you need to run
+#  xgenerate_databases to update the model for SPECFEM.
+#  ------------------------------------------------------------------------------
+   IMPOSE_ASKI_INVERTED_MODEL = .true.
+   FILE_ASKI_INVERTED_MODEL = total_absdev_model.kim
+#  --------------------------------------------------------------------------
+#  Say if phase end times need to be computed (only on iteration 1)
+#  or can be read from file.
+#
+   COMPUTE_PHASE_END_TIMES = .false.
+#  --------------------------------------------------------------------------
+#  Say if only ASKI main file is produced to check inversion grid and background model
+#  and then abort the simulation
+#
+   ASKI_MAIN_FILE_ONLY = .false.
+#  -----------------------------------------------------------------------------------
+#  Say if ASKI main file is written for first source
+#
+   ASKI_MAIN_FILE_WRITE = .true.
+#  -----------------------------------------------------------------------------------
+#  Choose the method of Discrete Fourier Transform:
+#  EXPLICIT_SUMMATION : on-the-fly summation of complex values s(t)*exp^(-i*2pi*f*t)
+#                       only implemented for GPU
+#
+   ASKI_DFT_method = EXPLICIT_SUMMATION
+#  -----------------------------------------------------------------------------------
+#  Choose precision of Discrete Fourier Transform.
+#  For use with GPU, single precision is required.
+#
+   ASKI_DFT_double = .false.
+#  -------------------------------------------------------------------------------------------
+#  For kernel displacement simulations:
+#     * Apply a Hann taper at the end of the phase window before DFT
+#  For kernel Green tensor simulations:
+#     * Apply a Hann taper at the end of the time series before DFT
+#  Length of taper is given in seconds.
+
+   ASKI_DFT_apply_taper = .true.
+   ASKI_DFT_taper_length_kd = 10.
+   ASKI_DFT_taper_length_gt = 10.
+#  ------------------------------------------------------------------------------

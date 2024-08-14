@@ -1,0 +1,224 @@
+%
+\section{Preparation of SPECFEM3D computations}
+%
+\subsection{Using SPECFEM3D on a GPU cluster}
+To configure SPECFEM3D to run on a GPU cluster, the optional argument \verb+--with-cuda+ has to be passed to the \verb+configure+ script. If the user wants to select a specific version, the argument can be adapted as follows: \verb+--with-cuda=cuda<version number>+. An example of a configuration using \verb+gfortran+, \verb+gcc+, \verb+mpif90+ and CUDA version 10 looks like this:
+\begin{verbatim}
+	./configure FC=gfortran cc=gcc MPIFC=mpif90 --with-cuda=cuda10.
+\end{verbatim}
+Currently, the latest supported version of CUDA is version 11. Contrary to expectation, the version that has to be specified here is not the version of the installed CUDA toolkit but is related to the architecture of the user's GPU. For example, if you have a GPU with \verb+Turing+ architecture (version 10) and the latest CUDA toolkit installed (version 11.6 as of 07.02.2022), the version that has to be put here is version 10. For additional details please refer to the SPECFEM3D manual section 2.1.
+
+If any changes to the Makefile have been made by the user, he/she is advised to create a copy of the modified Makefile as running \verb+configure+ creates a new Makefile from Makefile.in. If Makefile.in is not changed by the user, all changes in the Makefile are overwritten.
+It might be necessary to add the paths for HDFLIB and HDF\_INCLUDES into the Makefile.
+
+To run a simulation on a GPU, the variable \verb+GPU_MODE+ has to be set to \verb+.true.+ in the parameter file (see next section).
+%
+\subsection{The SPECFEM main parameter file}
+\label{sec:parfile}
+%
+Most of what SPECFEM3D does is controlled by its main parameter file \verb+DATA/Par_file+. It is read by all SPECFEM executables but typically only a subset of the variables defined in the parameter file are really used. In order to know which variable should be set when running a certain executable, here is a table that specifies for each variable where it is used. The SPECFEM executables are abbreviated in the table as follows: D -- \verb+xdecompose_mesh+, G -- \verb+xgenerate_databases+, M -- \verb+xmeshfem3D+, S -- \verb+xspecfem3D+. We also recommend values for each parameter which are useful when doing coupling of SPECFEM and GEMINI or when using ASKI or both. In some cases, the recommended value is ``auto'' signifying that this parameter is set by the script \verb+prepare_specfem_kernel.py+ to avoid inconsistencies when using ASKI .
+%
+\begin{longtable}{|p{7.7cm}|c|c|c|c|c|}\hline
+		Variable & \multicolumn{4}{c}{Used in} & Recommended Value \\ \hline
+		\verb+SIMULATION_TYPE+               &   & G &   & S & 1 \\ \hline
+		\verb+NOISE_TOMOGRAPHY+              &   & G &   & S & 0 \\ \hline
+		\verb+SAVE_FORWARD+                  &   &   &   & S & .false. \\ \hline
+		\verb+INVERSE_FWI_FULL_PROBLEM+      &   & G &   & S & .false. \\ \hline
+		\verb+UTM_PROJECTION_ZONE+           &   & G & M & S & 11 \\ \hline
+		\verb+SUPPRESS_UTM_PROJECTION+       &   & G & M & S & .true. \\ \hline
+		\verb+MAP_TO_SPHERICAL_CHUNK+        &   & G & M & S & .true. \\ \hline
+		\verb+NPROC+                         &   & G &   & S & choose properly \\ \hline
+		\verb+NSTEP+                         &   &   &   & S & auto \\ \hline
+		\verb+DT+                            &   &   &   & S & auto \\ \hline
+		\verb+LTS_MODE+                      & D &   &   & S & false \\ \hline
+      \verb+PARTITIONING_TYPE+             & D &   &   &   & 1 \\ \hline
+		\verb+USE_LDDRK+                     &   &   &   & S & false \\ \hline
+		\verb+NGNOD+                         & D & G & M & S & 8 \\ \hline
+		\verb+MODEL+                         &   & G &   & S & external \\ \hline
+		\verb+APPROXIMATE_OCEAN_LOAD+        &   & G &   & S & false \\ \hline
+		\verb+TOPOGRAPHY+                    &   & G & M &   & false \\ \hline
+		\verb+ATTENUATION+                   & D & G &   & S & false \\ \hline
+		\verb+ANISOTROPY+                    &   & G &   & S & false \\ \hline
+		\verb+GRAVITY+                       &   &   &   & S & false \\ \hline
+		\verb+PML_CONDITIONS+                & D & G & M & S & false \\ \hline
+		\verb+PML_INSTEAD_OF_FREE_SURFACE+   & D & G & M & S & false \\ \hline
+		\verb+STACEY_ABSORBING_CONDITIONS+   & D & G &   & S & true \\ \hline
+		\verb+STACEY_INSTEAD_OF_FREE_SURFACE+&   & G &   & S & false \\ \hline
+		\verb+BOTTOM_FREE_SURFACE+           &   & G &   & S & false \\ \hline
+		\verb+UNDO_ATTENUATION_AND_OR_PML+   &   &   &   & S & false \\ \hline
+		\verb+CREATE_SHAKEMAP+               &   &   &   & S & false \\ \hline
+		\verb+MOVIE_SURFACE+                 &   & G &   & S & false \\ \hline
+		\verb+MOVIE_TYPE+                    &   & G &   & S & 2 \\ \hline
+		\verb+MOVIE_VOLUME+                  &   &   &   & S & true \\ \hline
+		\verb+SAVE_DISPLACEMENT+             &   &   &   & S & true \\ \hline
+		\verb+USE_HIGHRES_FOR_MOVIES+        &   & G &   & S & false \\ \hline
+		\verb+NSTEP_BETWEEN_FRAMES+          &   &   &   & S & 100 \\ \hline
+		\verb+HDUR_MOVIE+                    &   &   &   & S & 0.0 \\ \hline
+		\verb+SAVE_MESH_FILES+               &   & G &   & S & true \\ \hline
+		\verb+LOCAL_PATH+                    & D & G & M & S & ./DATABASES\_MPI \\ \hline
+		\verb+NTSTEP_BETWEEN_OUTPUT_INFO+    &   &   &   & S & 100 \\ \hline
+      \verb+USE_SOURCES_RECEIVERS_Z+       &   &   &   & S & auto \\ \hline
+      \verb+USE_FORCE_POINT_SOURCE+        &   &   &   & S & auto \\ \hline
+      \verb+USE_RICKER_TIME_FUNCTION+      &   &   &   & S & auto \\ \hline
+      \verb+USE_EXTERNAL_SOURCE_FILE+      &   &   &   & S & false \\ \hline
+      \verb+PRINT_SOURCE_TIME_FUNCTION+    &   &   &   & S & auto \\ \hline
+      \verb+SEISMO_PATH+                   &   &   &   & S & auto \\ \hline
+      \verb+NTSTEP_BETWEEN_SEISMOS+        &   &   &   & S & 10000 \\ \hline
+      \verb+SUPRESS_IRIS-CONVENTION+       &   &   &   & S & true \\ \hline
+      \verb+SAVE_SEISMOGRAMS_DISPLACEMENT+ &   &   &   & S & true \\ \hline
+      \verb+SAVE_SEISMOGRAMS_VELOCITY+     &   &   &   & S & true \\ \hline
+      \verb+SAVE_SEISMOGRAMS_ACCELERATION+ &   &   &   & S & false \\ \hline
+      \verb+SAVE_SEISMOGRAMS_PRESSURE+     &   &   &   & S & false \\ \hline
+      \verb+SAVE_SEISMOGRAMS_IN_ADJOINT_RUN+&  &   &   & S & false \\ \hline
+      \verb+subsamp_seismos+               &   &   &   & S & 1 \\ \hline
+      \verb+USE_BINARY_FOR_SEISMOGRAMS+    &   &   &   & S & false \\ \hline
+      \verb+SU_FORMAT+                     &   &   &   & S & false \\ \hline
+      \verb+ASDF_FORMAT+                   &   &   &   & S & false \\ \hline
+      \verb+WRITE_SEISMOGRAMS_BY_MAIN+     &   &   &   & S & false \\ \hline
+      \verb+SAVE_ALL_SEISMOS_IN_ONE_FILE+  &   &   &   & S & false \\ \hline
+      \verb+USE_TRICK_FOR_BETTER_PRESSURE+ &   &   &   & S & false \\ \hline
+      \verb+USE_SOURCE_ENCODING+           &   &   &   & S & false \\ \hline
+      \verb+OUTPUT_ENERGY+                 &   &   &   & S & false \\ \hline
+      \verb+NTSTEP_BETWEEN_OUTPUT_ENERGY+  &   &   &   & S & 10 \\ \hline
+      \verb+NTSTEP_BETWEEN_READ_ADJSRC+    &   &   &   & S & 0 \\ \hline
+      \verb+READ_ADJSRC_ASDF+              &   &   &   & S & false \\ \hline
+      \verb+ANISOROPIC_KL+                 &   &   &   & S & false \\ \hline
+      \verb+SAVE_TRANSVERSE_KL+            &   &   &   & S & false \\ \hline
+      \verb+ANISOTROPIC_VELOCITY_KL+       &   &   &   & S & false \\ \hline
+      \verb+APPROXIMATE_HESS_KL+           &   &   &   & S & false \\ \hline
+      \verb+SAVE_MOHO_MESH+                & D & G &   & S & false \\ \hline
+      \verb+COUPLE_WITH_INJECTION_TECHNIQUE+& D & G& M & S & auto \\ \hline
+      \verb+INJECTION_TECHNIQUE_TYPE+      & D & G & M & S & auto \\ \hline
+      \verb+MESH_A_CHUNK_OF_THE_EARTH+     & D & G & M &   & false \\ \hline
+      \verb+TRACTION_PATH+                 &   &   &   & S & auto \\ \hline
+      \verb+FKMODEL_FILE+                  &   &   &   & S & FKmodel \\ \hline
+      \verb+RECIPROCITY_AND_KH_INTEGRAL+   &   &   &   & S & false \\ \hline
+      \verb+GEMINI_SYNSEIS_FILE+           &   &   &   & S & auto \\ \hline
+      \verb+MULTIPLE_SEQUENTIAL_SOURCES+   &   &   &   & S & auto \\ \hline
+      \verb+SEQUENTIAL_SOURCES_DESCRIPTION_FILE+   &   &   &   & S & auto \\ \hline
+      \verb+NUMBER_OF_SIMULTANEOUS_RUNS+   &   &   &   & S & 1 \\ \hline
+      \verb+GPU_MODE+                      &   &   &   & S & auto \\ \hline
+      \verb+ADIOS_ENABLED+                 &   & G & M & S & false \\ \hline
+      \verb+ADIOS_FOR_DATABASES+           & D & G & M &   & false \\ \hline
+      \verb+ADIOS_FOR_MESH+                &   & G &   & S & false \\ \hline
+      \verb+ADIOS_FOR_FORWARD_ARRAYS+      &   &  &    & S & false \\ \hline
+      \verb+ADIOS_FOR_KERNELS+             &   &  &    & S & false \\ \hline
+\end{longtable}
+%
+\subsection{The pseudo mesh}
+ \label{sec:mesh}
+%
+SPECFEM3D-C uses Cartesian coordinates and Cartesian components of the displacement fields and derived tensor fields. Hence, the computational box is rectangular with prescribed lateral and vertical extents. Within this box, SPECFEM3D-C defines a hexahedral mesh by specifying the number of elements and a spacing along each spatial dimension. To obtain specific values of the Cartesian coordinates, a minimum value for each coordinate is specified in addition. We will call this mesh the ``pseudo'' mesh because it does not have a physical significance.
+
+The pseudo mesh is defined in the file \verb+DATA/meshfem3D_file/Mesh_Par_file+ through the variables \verb+LATITUDE_MIN+, \verb+LATITUDE_MAX+, \verb+LONGITUDE_MIN+, \verb+LONGITUDE_MAX+ and \verb+DEPTH_BLOCK_KM+. The number of elements along the lateral dimensions are specified by the variables \verb+NEX_XI+ and \verb+NEX_ETA+ where \verb+NEX_XI+ refers to longitude and \verb+NEX_ETA+ to latitude. Note here that the variable names are rather misleading as you are supposed to provide lengths in meters for the extrema of latitude and longitude. So, in reality, these variables are simply extrema for the $x$-coordinate (longitude), the $y$-coordinate (latitude) and the depth coordinate ($-z$). $x$ is positive east, $y$ positive north and $z$ positive up. Element edge lengths can be calculated by dividing the box sizes by the number of elements. The element edge length along the vertical direction is specified at the end of the file in the section ``Domain regions''. If we only define one region, the variable \verb+NZ_END+ gives the number of elements along depth. Values for \verb+NEX_XI_END+ and \verb+NEX_ETA_END+ have to be consistent with \verb+NEX_XI+ and \verb+NEX_ETA+.
+
+\emph{For reasons that become clear later, always choose symmetric bounds for $x$ and $y$ around $0$.}
+
+There is an additional file ``interfaces.dat'' in which we can define the interfaces between the domain regions. For one region, we only need to specify the surface which is here conceived as being defined by a lateral grid whose points may vary with depth. Make sure that you set the variables \verb+NXI+ and \verb+NETA+ to the number of grid points along each lateral dimension which is one more than the number of elements! In addition, you need to specify the spacings here explicitly and they must be consistent with the lateral dimensions of the mesh and the number of elements. Moreover, you specify the name of a file which contains the depths of the grid points of the surface (here ``interface\_01\_zcoor.dat''). For a surface without topography, just set all values to zero. Finally, you must provide the number of elements in the vertical direction which should be consistent with \verb+NZ_END+. For use with Gemini, please set \verb+SUPPRESS_UTM_PROJECTION+ to true everyhwhere.
+
+Although we will do parallel computations later, set the value of \verb+NPROC_XI+ and \verb+NPROC_ETA+ to $1$! We use a regular mesh (\verb+USE_REGULAR_MESH+ is true) and no doubling layers (\verb+NDOUBLINGS+ $=0$). Dimensions of CPMLs are irrelevant because we will use Stacey boundary conditions later for coupling. Also domain material are irrelevant later because we will specify an external earth model. Still, choose here \verb+NMATERIALS = 1+. For plotting the mesh choose \verb+CREATE_VTK_FILES = .true.+.
+%
+\begin{actionbox}[label={action:mesh_parfile},float=h!]{SPECFEM's mesh parameter files}
+	Edit the file \verb+Mesh_Par_file+ in the subfolder \verb+meshfem3D_files+ of \verb+DATA+ as described above. Also edit the files \verb+interfaces.dat+ as explained above. Either use the file \verb+interfaces_01_zcoor.dat+, if you want a flat surface or create a new one which may contain non-zero values to represent topography.
+\end{actionbox}
+%
+\subsection{Mapping the pseudo mesh to a spherical chunk}
+%
+To give the pseudo mesh a physical significance we map it to a spherical chunk. To this purpose, we choose grid points with constant value of the $y$-coordinate to lie on a parallel with constant latitude, and grid points with constant value of the $x$-coordinate to lie on a meridian with constant longitude. With symmetric bounds around $0$, the surface of the chunk covers an area limited by the parallels $\pm\beta_\mathrm{max}$ and the meridians $\pm\varphi_\mathrm{max}$. Grid points with fixed $x$ and $y$ but differing $z$ are a chosen to lie on a radius from earth's center. Thus, the spherical coordinates of a point with coordinates $x,y,z$ in the pseudo mesh are given by:
+\begin{align}
+	r &= R_E+z \notag \\
+	\beta &= \frac{\pi}{2}-\vartheta = \frac{y}{R_E} \notag \\
+	\varphi &= \frac{x}{R_E} \,,
+\end{align}
+%
+where $\beta$ is latitude, $\varphi$ longitude and $r$ radius. $R_E$ is the radius of the earth. Since, we use SPECFEM3D-C which uses Cartesian coordinates, we need to transform the spherical coordinates to Cartesian chunk coordinates $x_c,y_c,z_c$ relative to a pole at the equator at zero longitude with $x_c$ pointing east, $y_c$ pointing north and $z_c$ pointing up with zero value at the surface. To accomplish this we first calculate standard Cartesian coordinates $x_s,y_s,z_s$ with the $z_s$-axis through the north pole, the $x_s$-axis through the zero meridian at the equator and the $y_s$-axis through the equator at 90 degrees longitude with $x_s=0$ on the equator and not at the earth's center:
+\begin{align}
+	x_s & = r\cos\beta\cos\varphi-R_E \notag \\
+	y_s & = r\cos\beta\sin\varphi \notag \\
+	z_s & = r\sin\beta \,.
+\end{align}
+Since we want the $z_c$-axis through zero longitude at the equator, we first interchange $z_s$ and $x_s$, i.e. $x'_s = z_s$ and $z'_s = x_s$ and $y'_s = y_s$:
+%
+\begin{align}
+	z'_s & = r\cos\beta\cos\varphi-R_E \notag \\
+	y'_s & = r\cos\beta\sin\varphi \notag \\
+	x'_s & = r\sin\beta \,.
+\end{align}
+%
+Now, the $z'_s$-axis is at the right place but the $x'_s$-axis points to the north instead east. Thus, we also interchange $x'_s$ and $y'_s$, i.e. $x_c = y'_s$ and $y_c = x'_s$ and $z_c = z'_s$:
+%
+\begin{align}
+	z_c & = r\cos\beta\cos\varphi-R_E = r\cos\left(y/R_E\right)\cos(x/R_E)-R_E \notag \\
+    x_c & = r\cos\beta\sin\varphi \notag = r\cos(y/R_E)\sin(x/R_E) \\
+	y_c & = r\sin\beta = r\sin(y/R_E)\,.
+\end{align}
+%
+This is the mapping from the Cartesian coordinates of the grid points in the pseudo mesh to the corresponding Cartesian coordinates of the grid points in the spherical chunk.
+
+The inverse transform is given by:
+%
+\begin{align}
+	r &= \sqrt{x_c^2+y_c^2+(z_c+R_E)^2} \notag \\
+	\beta &= \arcsin(y_c/r) \notag \\
+	\varphi &= \arcsin(x_c/(r\cos\beta)) \notag \\
+	x &= R_E\,\varphi \notag \\
+	y & = R_E\,\beta \notag \\
+	z &= r-R_e \,.
+\end{align}
+%
+You may find the code doing these transformations in the \verb+SPECFEM3D/src+ folder under \verb+meshfem3D/cartesian_box_spherical_chunk_mappings.f90+.
+%
+\subsection{Creating the mesh using the internal mesher}
+%
+ The internal mesher of SPECFEM3D-C also reads the main parameter file (\verb+DATA/Par_file+).
+ This large file contains many different configuration variables but only very few are used by the mesher itself. If you want to activate the mapping to the spherical chunk, you need to set the variable \verb+MAP_TO_SPHERICAL_CHUNK+ to true. Please do not use the option \verb+MESH_A_CHUNK_OF_THE_EARTH+ which was conceived for a different purpose. When using the mapping, you should set \verb+SUPPRESS_UTM_PROJECTION+ to true and \verb+TOPOGRAPHY+ to false.
+
+ Beyond that the mesher uses the following configuration variables of the main parameter file:
+\verb+NGNOD+ ($=8$) is the number of nodes used for the shape functions. \verb+PML_CONDITIONS+ and \verb+PML_INSTEAD_OF_FREE_SURFACE+ should be both false as we will use Stacey boundary conditions later. Set \verb+COUPLE_WITH_INJECTION_TECHNIQUE+ to true and \\ \verb+INJECTION_TECHNIQUE_TYPE+ to $4$ for GEMINI and $2$ for AxiSEM. \verb+ADIOS+ remains disabled.
+%
+\begin{actionbox}[label={action:generate-mesh},float=h!]{Creating the mesh with xmeshfem3D and xdecompose\_mesh}
+ Edit the variables tagged with ``M'' for ``meshfem'' and ``D'' for ```decompose'' in SPECFEM's \verb+Par_file+ and enter values as described above. Then switch to the inversion folder and run the SPECFEM3D-C mesher \verb+xmeshfem3D+ on a single computing node. The mesher will write several files to the folder \verb+./MESH+ for later use. That this happens, please check in the file \verb+setup/constants.h+ that the variable \verb+SAVE_MESH_AS_CUBIT+ is set to true.  Plot the mesh by importing the file \verb+MESH/proc000000_mesh.vtk+ into \verb+paraview+. Logging information about the properties of the mesh is provided in \verb+OUTPUT_FILES/output_meshfem3D.txt+. Then run \verb+xdecompose_mesh+ with the proper command line arguments also on one node.
+\end{actionbox}
+%
+\subsection{Decomposition of the mesh}
+%
+Since we will run SPECFEM3D-C on a parallel machine later, the mesh needs to be decomposed into subregions that are assigned to the individual processors. This is done by the executable \verb+xdecompose_mesh+. It is also run from the inversion folder on only one node. It reads the main parameter file and takes the variable \verb+LOCAL_PATH+ from there. You should keep the preset name \verb+DATABASES_MPI+ for this variable. Other important parameters for coupling with GEMINI are \verb+STACEY_ABSORBING_CONDITIONS = .true.+ and \verb+STACEY_INSTEAD_OF_FREE_SURFACE = .false.+. The executable takes 3 arguments: the number of processes to be used later when running SPECFEM in parallel, the folder \verb+./MESH+ and the local path \verb+DATABASES_MPI+. Output is written to the local path.
+%
+\subsection{Generating the parallel databases for SPECFEM3D-C}
+%
+The final step for setting up the SPECFEM computation is to create the process-specific databases by going into the inversion folder and running the executable \verb+xgenerate_databases+ on the number of nodes specified when doing the decomposition. Several parameters of the SPECFEM parameter file beyond the ones used by the mesher need to be set correctly:\\ \verb+SIMULATION_TYPE+ is 1, \verb+NOISE_TOMOGRAPHY+ is 0 and \verb+INVERSE_FWI_FULL_PROBLEM+ is false. \verb+NPROC+ should be set to the the number of processes specified when doing the decomposition. When using ASKI, \verb+MODEL+ should be set to ``aski'' and you need to prepare at least an ASKI background model (see the following subsection). If you do no want to use ASKI in the first place and use an internal SPECFEM model, set \verb+MODEL+ for example to ``1d\_prem''.  Note that whenever you want to change the earth model used by SPECFEM you need to recreate the parallel databases!
+
+\begin{infobox}[label={info:3d-aski-model},float=h!]{3D ASKI model}
+ Note: In order to set up a 3D ASKI model using \verb+convertFmtomoToKim+ you need the ASKI main file which is created by SPECFEM. So, in this case it is mandatory to first run SPECFEM with a different model to produce the ASKI main file and then to activate the ASKI 3D model and rerun \verb+xgenerate_databases+.
+\end{infobox}
+
+ Other parameters like \verb+APPROXIMATE_OCEAN_LOAD+, \verb+ATTENUATION+ and \verb+ANISOTROPY+ should be set to false. Make sure that \verb+SAVE_MESH_FILES+ is set to true. The two parameters \verb+USE_FORCE_POINT_SOURCE+ and \verb+USE_RICKER_TIME_FUNCTION+ are only reproduced in the output file of \verb+xgenerate_databases+ but do not influence its behaviour. These parameters will be later set by a Python script before running \verb+xspecfem3D+. Please set remaining parameters not mentioned here as proposed in the table.
+
+ To cooperate with ASKI, some ASKI specific extensions have been added to SPECFEM which are controlled by a separate parameter file called \verb+Par_file_ASKI+. To use an ASKI background model here, set the following parameters in \verb+Par_file_ASKI+:
+  \begin{longtable}{|p{10.5cm}|c|c|c|}\hline
+	  Variable & \multicolumn{2}{c|}{Used in} & Recomm. Value \\ \hline
+	  \verb+USE_ASKI_BACKGROUND_MODEL+         & G &  & true \\ \hline
+	  \verb+FILE_ASKI_BACKGROUND_MODEL+        & G &  & name of file \\ \hline
+	  \verb+IMPOSE_ASKI_INVERTED_MODEL+        & G &  & true/false \\ \hline
+	  \verb+FILE_ASKI_INVERTED_MODEL+          & G &  & name of file \\ \hline
+  \end{longtable}
+%
+ \begin{infobox}[label={info:parfile-aski},float=h!]{ASKI parameter file for SPECFEM}
+   Note: In all following iterations, the \verb+Par_file_ASKI+ will be generated automatically by \verb+prepare_specfem_kernel.py+. But, for initiating the SPECFEM parallel database, maybe even independently from ASKI, it is more convenient to set the few parameters listed above manually.
+ \end{infobox}
+
+ One may also specify a 3D model for computation with SPECFEM using ASKI tools. For this purpose, you may use the ASKI program ``convertFmtomoToKim'' which can read 3D models from FMTOMO and produce values for non-inverted properties using predefined correlations. Since using this program needs more knowledge about ASKI we postpone the description to later in the document. Whenever you want to change the earth model used by SPECFEM you need to recreate the parallel databases!
+%
+\begin{actionbox}[label={action:generate-databases},float=h!]{Creating SPECFEM's parallel databases}
+   Edit in SPECFEM's \verb+Par_file+ the variables tagged with ``G'' as described above. Then run \verb+xgenerate_databases+ with the number of processes specified during decomposition to finish preparing SPECFEM computations. When injection of GEMINI wavefields is activated, \verb+xgenerate_databases+ will produce a file \verb+procXXXXXX_absorbing_boundaries_for_gemini.txt+ which contains the coordinates of the boundary GLL points and the components of the normal vector there owned by the specific process. This file is used later when preparing the GEMINI wavefields to be injected at the boundaries. The output of \verb+xgenerate_databases+ also goes to \verb+DATABASES_MPI+, among them VTK files for model parameters, MPI points and the free surface for each parallel process. These may be either plotted directly or be combined into one VTK file using the executable \verb+xcombine_vol_data_vtk+. The run will also produce diverse output in the folder \verb+OUTPUT_FILES+. One important file there is \verb+output_generate_databases.txt+ which provides a comprehensive information about the setup. It also gives an estimate of the maximum period resolved and the maximum recommended time step. There is also a log file concerning the creation of the ASKI 1D or 3D external models if activated.
+\end{actionbox}
+
+Command line arguments of \verb+xcombine_vol_data_vtk+ are as follows:
+ \begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item an index for the first slice (e. g. 0) and one for the last slice (e. g. 39),
+   \item the property to be plotted (e. g. vp),
+   \item the folder where the VTK-files of the slices are located (e. g. \verb+DATABASES_MPI+),
+   \item the folder to which the combined VTK file is written,
+   \item a flag for the resolution, either low = 0 or high = 1.
+ \end{itemize}

@@ -1,0 +1,295 @@
+#===============================================================================
+#
+#             P A R F I L E _ G E M I N I
+#
+#  Joint parameter file for all runs related to Gemini
+#===============================================================================
+#
+#  G R E E N   F R E Q U E N C Y   W A V E N U M B E R   S P E C T R A
+#
+#  T R A V E L   T I M E   T A B L E
+#
+#===============================================================================
+#     Accuracy of computation (for FK spectra and also travel time table)
+#     Accuracy of 1.e-5 has proven OK. Do not change if not very sure.
+#
+      ACCURACY = 0.000010
+#     ----------------------------------------------------------------------
+#     1D earth model in json-format, relative to main inversion path,
+#     properties must be given in SI units (incl travel time table)
+#
+      EARTH_MODEL = GEMINI/ASKI_ak135_diehl.json
+#     ---------------------------------------------------------------------
+#     Basename of output files for GFK (Green frequency wavenumber)-spectra
+#     DSV = displacement-stress-vector
+#     Relative to main inversion path
+#
+      DSVBASENAME = GEMINI/gfk-fmax015-global-ak135-diehl-slow01-tlen2100
+#     ---------------------------------------------------------------------
+#     Mode of attenuation. Allowed values are:
+#     ELASTIC,ATTENUATION_ONLY,DISPERSION_ONLY,ATTENUATION_AND_DISPERSION
+#     (incl travel time table)
+#
+      ATTENUATION_MODE = ELASTIC
+#     ---------------------------------------------------------------------
+#     Parameter group for external radial nodes where solutions are stored
+#     (incl travel time table) 
+#     ---------------------------------------------------------------------
+#     Earth radius used with external radial nodes (meter)
+#
+      EXTERNAL_NODES_REARTH = 6371000.000000
+#     -----------------------------------------------------------------------
+#     read external radial nodes from file (yes = 1, no = 0)
+#
+      EXTERNAL_NODES_FROM_FILE = 1
+#     --------------------------------------------------------------------------
+#     The following keywords apply if external nodes are read from file.
+#     Filename relative to main inversion path
+#
+         EXTERNAL_NODES_HDF_FILE = ./GEMINI/specfem_boundary_data.hdf
+         EXTERNAL_NODES_HDF_PATH = gllUniqueRadii
+#
+#     Else the following keywords are used (EXTERNAL_NODES_DR in meter)
+#
+         EXTERNAL_NODES_NBLOCKS = 5
+         EXTERNAL_NODES_NNOD =  10 10 10 10 10
+         EXTERNAL_NODES_DR =  3000 5000 10000 20000 20000
+         EXTERNAL_NODES_SHIFT = 0.000000
+#     --------------------------------------------------------------------------
+#     radius of receiver node (take closest node) in meter
+#
+      REC_NODE_RADIUS = 6371000.0
+#     --------------------------------------------------------------------------
+#     radii of source nodes, receiver node radius must be included (only for GreenFKSpectraForASKI)
+#     in meter
+#
+      NSNOD = 13
+      SOURCE_NODE_RADII = 6361000. 6354440. 6351000. 6347540. 6341000. 6334440. 6331000. 6327540.0 6321000. 6314440. 6251000. 5801000. 6371000.0
+#     --------------------------------------------------------------------------
+#     source type: set 'FORCE' for single force or 'MOMENT' for moment tensor source
+#
+      SOURCE_TYPE = MOMENT 
+#     --------------------------------------------------------------------------
+#     Upper frequency limit of FK-spectra in Hz 
+#     (should be about twice the Nyquist frequency desired for synthetics
+#     but depends on lowpass filter used later)
+#
+      FMAX = 0.150000
+#     --------------------------------------------------------------------------
+#     Maximum length of synthetics to be calculated from FK-spectra in seconds
+#     Determines the frequency stepping: df = 1/tlen
+#
+      TLEN = 2100.000000
+#     --------------------------------------------------------------------------
+#     Slowness limit for FK spectra used from 0 to 0.5*fmax in s/m
+#     determines the maximum wavenumber according to kmax = om*plim
+#     Choose here 0.1 s/km = 11.1 s/deg. This eliminates SS up to 140 degrees
+#     and includes P and PP at all distances.
+#
+      SLOWNESS_LIMIT_1 = 0.000100000
+#     --------------------------------------------------------------------------
+#     Slowness limit for FK-spectra used from 0.5*fmax to fmax
+#
+      SLOWNESS_LIMIT_2 = 0.000100000
+#     --------------------------------------------------------------------------
+#     Global calculation of GFK-spectra for l = 0,lmax
+#     Flag with value 1 if global calculation else 0
+#
+      GLOBAL = 1
+#     --------------------------------------------------------------------------
+#     Distance from which wavenumber stepping is calculated in meter
+#     (should be about 10 times the maximum source receiver distance)
+#     only used if GLOBAL == 0
+#
+      XLEN = 5000000.000000
+#     --------------------------------------------------------------------------
+#     Wavenumber margin beyond slowness limit in fraction of max wavenumber
+#
+      WAVENUMBER_MARGIN_FRACTION = 0.200000
+#     --------------------------------------------------------------------------
+#     Flag for calculating stresses R,S,T
+#
+      STRESSFLAG = .false.
+#===============================================================================
+#
+#  S Y N T H E T I C   S E I S M O G R A M S
+# 
+#===============================================================================
+#     Name of event list file relative to main inversion path
+#
+      FILE_EVENT_LIST = measured_data/ASKI_events_1
+#     --------------------------------------------------------------------------
+#     Filters applied to synthetic seismograms computed.
+#     Information specifying the way the filter is computed.
+#     "EVENT_FILTER_TYPE" contains a keyword for the algorithm.
+#     "EVENT_FILTER_SPECS" contains a real array with necessary data.
+#     Here, it is order and corner frequency (Hz) for highpass and lowpass,
+#     respectively. Not used if COMPUTE_SPECTRA = .true.
+#
+      EVENT_FILTER_TYPE =  BUTTERWORTH_BANDPASS
+      EVENT_FILTER_SPECS =  4.0 0.03 10.0 0.0904
+#     --------------------------------------------------------------------------
+#     Type of seismograms: Valid values are "velocity" and "displacement"
+#     (computeSyntheticSeismograms and computeSyntheticsForASKI)
+#
+      SEISMO_TYPE = displacement    
+#     --------------------------------------------------------------------------
+#     Calculate the time shift of the seismogram from the ray table.
+#     When using GEMINI for the coupling with SPECFEM it is advised to keep 
+#     this value to .true. 
+#   
+      AUTOMATIC_TIMESHIFT = .true.  
+#     --------------------------------------------------------------------------
+#        Buffer before arrival time applied when left-shifting seismograms (in s)
+# 
+         TIME_SHIFT_BUFFER = 30
+#        ------------------------------------------------------------------
+#        Length of time window for considered phase (in s) 
+#        Output of seismograms up to travel time plus phase window length
+#
+         PHASE_WINDOW_LENGTH = 100
+#     --------------------------------------------------------------------------
+#     For computeSyntheticsForSpecfemCoupling and computeSeismogramsFromSpectraForSpecfemCoupling only:
+#      
+#        Choose to either only compute spectra (.true.) or seismograms (.false.) 
+#
+         COMPUTE_SPECTRA = .false.
+#        ------------------------------------------------------------------------
+#        Relative path to folder where injection seismograms or injection spectra are stored.
+#        Assume -split mode, i.e. filename is event-specific and as built as follows:
+#        <path_synthetics/eventid_seis.hdf> if seismograms are calculated or
+#        <path_synthetics/eventid_spec.hdf> if spectra are calculated.
+#        When running computeSeismogramsFromSpectraForSpecfemCoupling, the spectra are
+#        read from the <...._spec.hdf> file and written to the <...._seis.hdf> file.
+#
+         PATH_SYNTHETICS = injection_seismograms/
+#     --------------------------------------------------------------------------
+#     For computeSyntheticsForASKI only:
+#
+#        Output file for synthetic seismograms (relative to main inversion path)
+#
+         FILE_SYNSEIS_FOR_ASKI = measured_data/seismograms_at_stations.hdf
+#     --------------------------------------------------------------------------
+#     For computeSyntheticSeismograms only:
+#
+#        Output file for synthetic seismograms. When -split option is specified, then
+#        seismogram gathers are written into event sub-folders. The event id is then
+#        inserted into the path before the file name.
+#
+         FILE_SYNSEIS = measured_data/seismograms_at_stations.hdf
+#     --------------------------------------------------------------------------------
+#     For computeSyntheticsForASKI, computeSyntheticsSeismograms, computeStationFilter
+#
+#        File with station coordinates
+#
+         FILE_STATION_LIST = measured_data/allstation_AA
+#        --------------------------------------------------------------------------
+#        File with station filters
+#
+         FILE_STATION_FILTER = measured_data/station_filters.hdf
+#        --------------------------------------------------------------------------
+#        Type of station filter. Currently, only UNIT is implemented setting
+#        the filter transfer function to 1.0 a all freqeuncies. Could be extended
+#        to allow instrument transfer functions.
+#
+         STATION_FILTER_TYPE = UNIT 
+#===============================================================================
+#
+#  P R E P A R E   S P E C F E M   C O U P L I N G
+# 
+#===============================================================================
+#     Folder where list of GGL boundary points was written by SPECFEM xgenerate_databases
+#
+      SPECFEM_DATABASES_MPI = ./DATABASES_MPI
+#     --------------------------------------------------------------------------
+#     Name for output HDF file with boundary point specifications
+#     as needed for specfem coupling relative to run directory
+#
+      BOUNDARY_DATA = ./GEMINI/specfem_boundary_data.hdf
+#     --------------------------------------------------------------------------
+#     Element dimensions of SPECFEM box (dimx,dimy,dimz)
+#
+      BOX_DIMENSIONS = 80 60 30
+#     --------------------------------------------------------------------------
+#     Latitude and longitude of box center
+#
+      BOX_CENTER = 46.2 10.87
+#     --------------------------------------------------------------------------
+#     Number of processes used for SPECFEM calculation
+#
+      NPROC = 40
+#     --------------------------------------------------------------------------
+#     Radial tolerance for determining unique radial GLL-points (in meter)
+#     Should be small enough to discriminate between radial GLL-points
+#
+      RADIAL_TOLERANCE = 1000.0
+#     --------------------------------------------------------------------------
+#     Tolerance for discrimation of essentially different epicentral distances
+#     in degrees (1 degree ~ 100 km, 0.01 degree ~ 1 km)
+#
+      DISTANCE_TOLERANCE = 0.005 
+#===============================================================================
+#
+#  T R A V E L   T I M E   T A B L E
+# 
+#===============================================================================
+#     File where ray tables are stored.
+#
+      FILE_RAY_TABLE = GEMINI/ray-table-P-ntp444-uniqueradii.hdf
+#     --------------------------------------------------------------------------
+#     Turning point nodes starting at CMB
+#     Do not put turning points into a region with decreasing velocity
+#     Restrict turning nodes to lower mantle to avoid triplications
+#     From 3480 to 5700 = 2220 km => 5 km*444 points
+#
+      TURNING_NODES_NNOD = 444
+      TURNING_NODES_DR = 5000
+#     --------------------------------------------------------------------------
+#     Type of ray (P or S, others to be implemented)
+#
+      RAY_TYPE = P
+#===============================================================================
+#
+#  S O U R C E   T I M E   F U N C T I O N
+# 
+#===============================================================================
+#     Path to the event folders in the waveform data base
+#
+      DATA_PATH_TO_EVENTS = /data/AlpArray_Data/dmt_database/
+#     --------------------------------------------------------------------------
+#     Path to a subfolder of the event folder where the instrument corrected 
+#     waveforms files reside
+#
+      DATA_SUBEVENT_PATH = processed_OLD/
+#     --------------------------------------------------------------------------
+#     Path to processed measured seismograms (relative to inversion directory)
+#
+      PATH_MEASURED_SEIS = measured_data/
+#     --------------------------------------------------------------------------
+#     File wih seismograms at stations (relative to event folder in PATH_MEASURED_SEIS)
+#
+      FILE_SYNSEIS_AT_STATIONS = seismograms_at_stations.hdf
+#     --------------------------------------------------------------------------
+#     --------------------------------------------------------------------------
+#     Sigma for damping of inversion for source wavelet
+#
+      SIGSTF = 0.0005
+#     --------------------------------------------------------------------------
+#     Waterlevel is max_envelope/mag
+#
+      MAGSTF = 1.0
+#     --------------------------------------------------------------------------
+#     Lower bound for SNR to exclude noisy traces
+#
+      STF_SNR_BOUND = 15.
+#     --------------------------------------------------------------------------
+#     Upper bound for misfit after STF fitting
+#
+      STF_MISFIT_BOUND = 1.2
+#     --------------------------------------------------------------------------
+#     Upper bound for abs(log10(rmsdat/rmssyn)) after STF fitting
+#     Example: A value of 0.15 corresponds to amplitude factor limits
+#     of 10**(-0.15) and 10**(+0.15) (about 0.7 and 1.4)
+#
+      STF_RMS_BOUND = 0.15       
+#     -------------------------------------------------------------------------- 

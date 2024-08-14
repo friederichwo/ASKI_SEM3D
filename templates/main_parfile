@@ -1,0 +1,261 @@
+#---------------------------------------------------------------------------
+#  PARAMETER FILE FOR INVERSION "alparray"
+#---------------------------------------------------------------------------
+#  Main path of this inversion
+#
+   MAIN_PATH_INVERSION = /rscratch/minos15/wolle/alparray/
+#  --------------------------------------------------------------------------
+#  Path to inversion folder on big SSD disk
+#
+   BIGSSD_PATH_INVERSION = /bigssd/wolle/alparray/
+#  --------------------------------------------------------------------------
+#  Model property set name, for example:
+#     isoLameSI (rho [kg/m^3] , lambda [Pa] ,mu [Pa])
+#     isoVelocitySI (rho [kg/m^3] , vp [m/s] ,vs [m/s])
+#
+   PROPERTY_SET_NAME = isoVelocitySI
+#
+#  File with property correlation matrix
+#  Assume that the true perturbations in the earth are given by delrho, delvp and delvs,
+#  while our inverted properties are drho,dvp and dvs. We can define a correlation between
+#  RELATIVE model changes as follows:
+#  delrho/rho = b(1,1)*drho/rho + b(1,2)*dvp/vp + b(1,3)*dvs/vs
+#  delvp/vp   = b(2,1)*drho/rho + b(2,2)*dvp/vp + b(2,3)*dvs/vs
+#  delvs/vs   = b(3,1)*drho/rho + b(3,2)*dvp/vp + b(3,3)*dvs/vs.
+#  Each line specified below gives one row of the correlation matrix B.
+#  See also explanations in docu and module propertySet
+#
+   PROPERTY_CORRELATION_FILE = model_property_correlation
+#  ---------------------------------------------------------------------------
+#  Current iteration step
+#
+   CURRENT_ITERATION_STEP = 2
+#  ---------------------------------------------------------------------------
+#  Path to current iteration step files:
+#  relative to main path, defining name of subdirectory of MAIN_PATH_INVERSION
+#  which contains all relevant (meta)-data for i-th inversion step.
+#  A three-digit integer (= CURRENT_ITERATION_STEP) and '/' will be appended to this path
+#  (i.e. '001/', '002/', ...) defining the first, second ... iteration step directory
+#
+   ITERATION_STEP_PATH = iteration_step_
+#  ---------------------------------------------------------------------------
+#  File name of iteration step specific parameter file,
+#  relative to MAIN_PATH_INVERSION/ITERATION_STEP_PATH
+#
+   PARFILE_ITERATION_STEP = iter_parfile
+#  ---------------------------------------------------------------------------
+#  Type of inversion grid:
+#  specfem3d:
+#     grid uses elements of SPECFEM as cells and GLL points as wavefield points
+#     only one currently implemented
+#
+   INVERSION_GRID = specfem3d
+#  --------------------------------------------------------------------------
+#  Method used to compute displacements and strains
+#  on the wavefield points of the inversion grid specified above.
+#  The method must fit to the choice of the inversion grid.
+#
+   FORWARD_METHOD = specfem3d
+#  ---------------------------------------------------------------------------
+#  Absolute coordinates of center of inversion grid in degrees
+#  For geographical reference and import of a starting model
+#
+   REARTH = 6371000.0
+   INVGRID_CENTER_LAT = 46.2
+   INVGRID_CENTER_LON = 10.87
+#  --------------------------------------------------------------------------
+#  Element dimensions of SPECFEM box (dimx,dimy,dimz) = inversion grid
+#
+   INVGRID_DIMENSIONS = 80 60 30
+#  --------------------------------------------------------------------------
+#  X and Y and Z spacing of pseudo mesh in meters (same as in SPECFEM's interfaces.dat)
+#
+   PSEUDO_MESH_SPACING = 22500.0 22500.0 20000.0
+#  ---------------------------------------------------------------------------
+#  Path where in- and outputs of GEMINI programs are placed.
+#  Path is relative to the inversion main path
+#
+   PATH_GEMINI = GEMINI/
+#  ---------------------------------------------------------------------------
+#  Path where ASKI finds files related to the measured data.
+#  HDF files containing complex numbers
+#  in assumed frequency discretization as defined below.
+#  Path is relative to the inversion main path
+#
+   PATH_MEASURED_DATA = ASKI_data/
+#  ---------------------------------------------------------------------------
+#  Path where measured seismograms are stored (not yet Fourier transformed)
+#  Path is relative to the inversion main path
+#
+   PATH_MEASURED_SEIS = measured_seis/
+#  ---------------------------------------------------------------------------
+#  Path where injected seismograms are stored (for time correction of measured data)
+#  Path is relative to the inversion main path
+#
+   PATH_INJECTION_SEIS = injection_seismograms/
+#  ---------------------------------------------------------------------------
+#  Filename with list of events (see docu for file description)
+#  Path is relative to the inversion main path
+#
+   FILE_EVENT_LIST = ASKI_events
+#  ---------------------------------------------------------------------------
+#  Filename with list of stations (see docu for file description)
+#  specifying either receiver locations for kernel displacement calculations
+#  or source locations for kernel Green tensor calculations.
+#  Path is relative to the inversion main path
+#
+   FILE_STATION_LIST = ASKI_stations
+#  ---------------------------------------------------------------------------
+#  Filename with list of stations (see docu for file description)
+#  specifying receiver locations for kernel Green tensor calculations.
+#  Path is relative to the inversion main path
+#
+   FILE_GT_RECEIVER_LOCATIONS = ASKI_gt_receivers_16
+#  ---------------------------------------------------------------------------
+#  Discretized frequency window of measured data given by a frequency
+#  step FREQUENCY_STEP [Hz] and a vector of frequency indices INDEX_OF_FREQ (of length NUMBER_OF_FREQ), where 
+#  for specific frequency index i the corresponding frequency f_i [Hz] computes to 
+#  f_i = i * FREQUENCY_STEP
+#
+#  This defines a set of the 9 discrete frequencies at 0.03-0.09 Hz in steps of 0.005 Hz:
+#
+   MEASURED_DATA_FREQUENCY_STEP = 0.005
+   MEASURED_DATA_NUMBER_OF_FREQ = 13
+   MEASURED_DATA_INDEX_OF_FREQ = 6 7 8 9 10 11 12 13 14 15 16 17 18
+#  ---------------------------------------------------------------------------
+#  Indicate the unit factor of the measured data. The definition of the factor is:
+#  Multiplication of the measured data (displacement) with this factor gives values in the SI unit of meters [m].
+#  EXAMPLE: If you use seismic time-domain data for ASKI in the unit of nano meters [nm], then UNIT_FACTOR_MEASURED_DATA
+#  must be set to 1.0e-9 , because the data values in nano meters [nm] must be divided by 1.0e9 in order to get meters [m].
+#  If you use seismic displacement data in the SI unit of meters, then UNIT_FACTOR_MEASURED_DATA must be set to 1.0
+#
+   UNIT_FACTOR_MEASURED_DATA = 1.0
+#  ---------------------------------------------------------------------------
+#  Default VTK file format
+#
+   DEFAULT_VTK_FILE_FORMAT = ASCII
+#  -----------------------------------------------------------------------
+#                    I T E R A T I O N   S P E C I F I C  P A T H S
+#  --------------------------------------------------------------------------
+#  Here follow the paths relative to the current iteration step folder
+#  where diverse iteration specific output related to ASKI is stored.
+#  They are defined here because these sub-path names should be identical for
+#  each iteration.
+#  --------------------------------------------------------------------------
+#  Path to aski main file written by Specfem3D
+#
+   PATH_ASKI_MAIN_FILES = aski_main_files/
+#  --------------------------------------------------------------------------
+#  Path to kernel displacements computed by Specfem
+#
+   PATH_KERNEL_DISPLACEMENTS = kernel_displacements/
+#  --------------------------------------------------------------------------
+#  Path to kernel Green tensors computed by Specfem
+#
+   PATH_KERNEL_GREEN_TENSORS = kernel_green_tensors/
+#  --------------------------------------------------------------------------
+#  Path to waveform sensitivity kernels
+#
+   PATH_SENSITIVITY_KERNELS = sensitivity_kernels/
+#  --------------------------------------------------------------------------
+#  Path to Fourier transformed Specfem synthetics
+#
+   PATH_SYNTHETIC_DATA = synthetic_data/
+#  ---------------------------------------------------------------------------
+#  Folder to which some sensitivity analysis and inversion programs
+#  write their output (relatively small output
+#  like models, coefficients etc., NO wavefields/kernels etc.!),
+#  relative to iteration step folder
+#
+   PATH_OUTPUT_FILES = output_files/
+#  --------------------------------------------------------------------------
+#  Path to data model space info files
+#
+   PATH_DMSPACE = dmspace/
+#  --------------------------------------------------------------------------
+#  Path to VTK files
+#
+   PATH_VTK_FILES = vtkfiles/
+#  --------------------------------------------------------------------------
+#  Path where SPECFEM log files are copied to manually
+#
+   PATH_SPECFEM_LOGS = specfem_logs/
+#  -----------------------------------------------------------------------
+#                    S P E C F E M - A S K I
+#  --------------------------------------------------------------------------
+#  Here follow some ASKI specific parameters relevant for running SPECFEM
+#  and used to fill the Par_file_ASKI by prepare_specfem_kernel.py.
+#  These parameters will not be considered by inversionBasics.
+#  --------------------------------------------------------------------------
+#  Path to SPECFEM input files, relative to inversion main path
+#
+   PATH_SPECFEM_INPUT = DATA/
+#  --------------------------------------------------------------------------
+#  Path to SPECFEM parallel databases, relative to inversion main path
+#
+   PATH_SPECFEM_DATABASES = DATABASES_MPI/
+#  ---------------------------------------------------------------------------
+#  Path where phase end times of kdisp and kgt are stored and read from.
+#  Path is relative to the inversion main path
+#
+   PATH_PHASE_END_TIMES = phase_end_times/
+#  --------------------------------------------------------------------------
+#  Flag indicating use of ASKI background model. Should always be true.
+#  File containing the 1D background model, SPECFEM is using for computations.
+#  This should be identical to the model used by GEMINI for computing
+#  injection seismograms. Path is relative to Specfem input path.
+#
+   USE_ASKI_BACKGROUND_MODEL = .true.
+   FILE_ASKI_BACKGROUND_MODEL = ASKI_ak135_diehl
+#  ---------------------------------------------------------------------------
+#  Filename of table for travel time calculations
+#  Path is relative to the GEMINI path
+#
+   ASKI_TTIME_TABLE_FILE_KD = ray-table-P-ntp444-uniqueradii.hdf
+   ASKI_TTIME_TABLE_FILE_GT = ray-table-P-ntp444-uniqueradii.hdf
+#  --------------------------------------------------------------------------------
+#  Controls if any ASKI output files (i.e. kernel green tensor /
+#  kernel displacement files) are produced.
+#
+   COMPUTE_ASKI_OUTPUT = .true.
+#  ---------------------------------------------------------------------------------
+#  Choose if wavefield spectra are written to HDF files or conventional binary files
+#
+   ASKI_HDF_OUTPUT = .true.
+#  -----------------------------------------------------------------------
+#  Choose if computation of strains and Fourier transform for ASKI output
+#  is also done on GPU (no effect if in Par_file GPU_MODE = .false.)
+#
+   ASKI_USES_GPU = .true.
+#  ---------------------------------------------------------------------------
+#  Type of inversion grid = specfem3dInversionGrid. Do not change this setting.
+#  Use SPECFEM elements inside inversion domain as inversion grid cells.
+#  Wavefield points are ALL GLL points of an element.
+#
+   ASKI_type_inversion_grid = 4
+#  ---------------------------------------------------------------------------
+#  Width of ASKI inversion volume in SPECFEM pseudo-coordinates (see docu).
+#  Ses also definition of SPECFEM box in meshfem parfile.
+#  Required to find out if a SPECFEM element lies in the inversion domain.
+#
+   ASKI_wx = 1800000.
+   ASKI_wy = 1350000.
+   ASKI_wz =  600000.
+#  -----------------------------------------------------------------------
+#  rotation angles in degrees of ASKI inversion volume
+#  relative to SPECFEM box about the respective axes (better leave at zero).
+#  Required to find out if a SPECFEM element lies in the inversion domain.
+#
+   ASKI_rot_X = 0.0
+   ASKI_rot_Y = 0.0
+   ASKI_rot_Z = 0.0
+# -----------------------------------------------------------------------
+#  Center of ASKI inversion volume.
+#  Required to find out if a SPECFEM element lies in the inversion domain.
+#  Coordinates of SPECFEM GLL points remain unchanged.
+#
+   ASKI_cx = 0.0
+   ASKI_cy = 0.0
+   ASKI_cz = -300000.0
+# ---------------------------------------------------------------
+

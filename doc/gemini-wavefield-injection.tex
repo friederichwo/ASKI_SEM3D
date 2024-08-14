@@ -1,0 +1,163 @@
+%
+\section{Using GEMINI for wavefield injection}
+%
+For teleseismic inversions, one may save computational costs by solving the forward problem in a hybrid way: an efficient method specialized to 1D or 2D earth models is used to produce wavefields from remote sources which are injected into the SPECFEM computational box. Using GEMINI for this purpose requires some preparatory steps which are described in the following.
+%
+\subsection{Preliminary actions and considerations}
+%
+\subsubsection{Subfolder for Gemini}
+ All files related to GEMNI in- and output are assembled in a subfolder of the inversion folder (called \verb+GEMINI+ or \verb+gemini+). As for SPECFEM, the Gemini executables are run from the inversion folder and not from the Gemini subfolder! The GEMINI subfolder should have been generated already by the Python script \verb+createIterationFolders.py+.
+%
+\subsubsection{Geographical location of model box center}
+	You need to define the geographical coordinates of the center of the model box to allow a connection of the Specfem model domain to some real-world volume. Provide latitude and longitude of the center of the box in degrees. These are contained in the main parameter file.
+%
+\subsubsection{Frequency range}
+	Think about the frequency range required for computation of synthetic seismograms. It is controlled by the \verb+FMAX+ parameter. Green FK spectra are computed up to this frequency. Since seismograms need to be low-pass filtered later, include the transition from the pass to the stop band of your filter into this frequency range.
+%
+\subsubsection{Time series length}
+	Choosing the length of the time series \verb+TLEN+ is delicate. \verb+TLEN+ controls the sampling in the frequency domain by $df = 1/\mathrm{TLEN}$. Since the seismograms are generated from a finite-banded spectrum they are basically periodic and all signals arriving later than \verb+TLEN+ are folded somewhere into the time window (though strongly diminished due to the complex-omega trick). Still, such signals may be disturbing if they are excluded from the time window.
+%
+\subsubsection{Slowness limits}
+	The wavenumber range of the Green FK spectra is controlled by the slowness limits. Since $k=\omega p$, a given slowness corresponds to a straight line in the FK domain up to which the spectrum is calculated. The inverse slowness limit indicates the smallest horizontal apparent velocity of wave signals that are still contained in the spectrum. Thus, by choosing an appropriate value, apparently slow waves like surface waves or multiple shear waves can be excluded from the spectrum. But care is required here. It should be checked for some test cases that the truncated FK spectrum yields the same waveforms for the desired phases as the complete one. The second slowness limit is used for frequencies above half of \verb+FMAX+. Here the chosen slowness limit may be more restrictive as this part of the spectrum will be low-pass filtered later anyway.
+%
+\subsubsection{Source node radii}
+	When computing Green FK spectra, different files are created according to the radius of the source. Think about the number and location of source nodes needed to do forward computations for any earthquake given the limited accuracy of source depths in earthquake location.
+%
+\subsubsection{Event list}
+	To do test or production forward runs you need to provide a list of events as specified in section~\ref{sec:aski-events} for which computations are done. Start with one event or a few ones for testing purposes before trying a full catalogue.
+%
+\subsection{The Gemini parameter file}
+%
+As with SPECFEM, also GEMINI has a main parameter file where you can set parameters for the different executables that come with GEMINI in a single place. This avoids inconsistencies when running different executables at different times. The following GEMINI executables should be run using this parameter file:\\
+ \verb+computeGreenFKSpectraForASKI+ (GSA),\\
+ \verb+computeGreenFKSpectraForSynthetics+ (GSS),\\
+ \verb+computeTravelTimeTable+,\\
+ \verb+computeSyntheticSeismograms+ (SS),\\
+ \verb+computeSyntheticsForASKI+ (SA),\\
+ \verb+computeSyntheticsForSpecfemCoupling+ (SC),\\
+ \verb+computeSeismogramsFromSpectraForSpecfemCoupling+ (SSC),\\
+ \verb+prepareSpecfemCoupling+,\\
+ \verb+computeSourceWavelet+,\\
+ \verb+computeStationFilter+ (SF).
+
+The basic idea is to first compute frequency-wavenumber spectra for selected source depths containing all components needed for an arbitrary moment tensor or force source, and then later to compute from them synthetic seismograms for receivers at any depth, distance and azimuth for any moment tensor or force source sitting at the specified source depths. The FK spectra need to be recomputed only if a new earth model is used or if new additional source depths are desired.
+
+The GEMINI parfile specifies the following variables:
+\begin{longtable}{|p{6.5cm}|c|c|}\hline
+	Variable & Comment & Rec. Value \\ \hline
+   \multicolumn{3}{|c|}{\textbf{Green FK spectra and travel times}}  \\ \hline
+	\verb+ACCURACY+                  & & 0.00001 \\ \hline
+	\verb+EARTH_MODEL+               & & name of file \\ \hline
+	\verb+DSVBASENAME+               & & base name \\ \hline
+	\verb+ATTENUATION_MODE+          & & choose \\ \hline
+	\verb+EXTERNAL_NODES_REARTH+     & & 6371000.0 \\ \hline
+	\verb+EXTERNAL_NODES_FROM_FILE+  & & 1 / 0 \\ \hline
+	\verb+EXTERNAL_NODES_HDF_FILE+   & if from file & file name \\ \hline
+	\verb+EXTERNAL_NODES_HDF_PATH+   & if from file & gllUniqueRadii \\ \hline
+	\verb+EXTERNAL_NODES_NBLOCKS+    & not from file &  \\ \hline
+	\verb+EXTERNAL_NODES_NNOD+       & not from file &  \\ \hline
+	\verb+EXTERNAL_NODES_DR+         & not from file &  \\ \hline
+	\verb+EXTERNAL_NODES_SHIFT+      & not from file &  \\ \hline
+	\verb+REC_NODE_RADIUS+           & &  \\ \hline
+	\verb+NSNOD+                     & GSA &  \\ \hline
+	\verb+SOURCE_NODE_RADII+         & GSA &  \\ \hline
+	\verb+SOURCE_TYPE+               & & 0 / 1 \\ \hline
+	\verb+TLEN+                      & &  \\ \hline
+   \verb+SLOWNESS_LIMIT_1+          & &  \\ \hline
+   \verb+SLOWNESS_LIMIT_2+          & &  \\ \hline
+   \verb+GLOBAL+                    & & 1 / 0 \\ \hline
+   \verb+XLEN+                      & &  \\ \hline
+   \verb+FMAX+                      & &  \\ \hline
+   \verb+WAVENUMBER_MARGIN_FRACTION+& & 0.2 \\ \hline
+   \verb+STRESSFLAG+                & & false \\ \hline
+   \multicolumn{3}{|c|}{\textbf{Synthetic seismograms}} \\ \hline
+	\verb+FILE_EVENT_LIST+           & &  \\ \hline
+	\verb+EVENT_FILTER_TYPE+         & &  \\ \hline
+	\verb+EVENT_FILTER_SPECS+        & &  \\ \hline
+	\verb+SEISMO_TYPE+               & SS, SA &  \\ \hline
+	\verb+AUTOMATIC_TIMESHIFT+       & & true \\ \hline
+   \verb+TIME_SHIFT_BUFFER+         & & 20 \\ \hline
+   \verb+PHASE_WINDOW_LENGTH+       & & 100 \\ \hline
+	\verb+COMPUTE_SPECTRA+           & SC &  \\ \hline
+	\verb+PATH_SYNTHETICS+           & SC, SSC &  \\ \hline
+	\verb+FILE_SEISMOGRAMS+          & SSC &  \\ \hline
+	\verb+FILE_SYNSEIS_FOR_ASKI+     & SA & \\ \hline
+	\verb+FILE_SYNSEIS+              & SS & \\ \hline
+	\verb+FILE_STATION_LIST+         & SA, SS, SF & \\ \hline
+	\verb+FILE_STATION_FILTER+       & SA, SS, SF & \\ \hline
+	\verb+STATION_FILTER_TYPE+       & SA, SS, SF & UNIT \\ \hline
+   \multicolumn{3}{|c|}{\textbf{Prepare SPECFEM coupling}} \\ \hline
+	\verb+SPECFEM_DATABASES_MPI+     & & ./DATABASES\_MPI \\ \hline
+   \verb+BOUNDARY_DATA+             & & name of file \\ \hline
+   \verb+BOX_DIMENSIONS+            & & 80 60 30 \\ \hline
+   \verb+BOX_CENTER+                & &  \\ \hline
+   \verb+NPROC+                     & &  \\ \hline
+   \verb+RADIAL_TOLERANCE+          & & 1000\\ \hline
+   \verb+DISTANCE_TOLERANCE+        & & 0.001 \\ \hline
+   \multicolumn{3}{|c|}{\textbf{Travel time table}} \\ \hline
+   \verb+FILE_RAY_TABLE+            & &  \\ \hline
+   \verb+TURNING_NODES_NNOD+        & & 444 \\ \hline
+   \verb+TURNING_NODES_DR+          & & 5000 \\ \hline
+   \verb+RAY_TYPE+                  & & P \\ \hline
+   \multicolumn{3}{|c|}{\textbf{Moment rate function}} \\ \hline
+   \verb+DATA_PATH_TO_EVENTS+       & & /data/AlpArray\_Data/dmt\_database/ \\ \hline
+   \verb+DATA_SUBEVENT_PATH+        & & processed/ \\ \hline
+   \verb+PATH_MEASURED_SEIS+        & & measured\_data \\ \hline
+   \verb+FILE_SYNSEIS_AT_STATIONS+  & &  \\ \hline
+   \verb+SIGSTF+                    & & 0.005 \\ \hline
+   \verb+MAGSTF+                    & & 1.0 \\ \hline
+   \verb+STF_SNR_BOUND+             & & 15 \\ \hline
+   \verb+STF_RMS_BOUND+             & & 0.15 \\ \hline
+   \verb+STF_MISFIT_BOUND+          & & 1.2 \\ \hline
+\end{longtable}
+%
+\subsection{Preparing Gemini-to-SPECFEM coupling}
+ \label{sec:prep-coupling}
+%
+Once \verb+xgenerate_databases+ has been run and coupling to Gemini was activated, the process specific files containing the location of the boundary points and the normal vectors are available. The executable \verb+prepareSpecfemCoupling+ reads these files and produces one long list by concatenating the boundary points associated with each process. Then, using the information about the location of the center of the computational box (\verb+BOX_CENTER+), it calculates geographical spherical coordinates of the boundary points ($r,\theta,\phi$). Assuming that the SPECFEM pseudo-mesh is regular and that mapping to a spherical chunk was activated, the GLL-points should lie on spherical shells of constant radius. Exploiting this fact, the boundary points are sorted according to radius and their position in the original list is stored in an index array. Moreover, the unique radii of the spherical shells are extracted from the sorted list. All this information is written to a HDF file that is later used by Gemini for computing synthetic seismograms at the boundary points (\verb+EXTERNAL_NODES_HDF_FILE+).
+
+You need to specify the name of the HDF output file with boundary points (\verb+BOUNDARY_DATA+) relative to the inversion folder, the SPECFEM database
+\verb+SPECFEM_DATABASES_MPI+, the SPECFEM box dimensions, (\verb+BOX_DIMENSIONS+), i. e. number of elements along each spatial direction, the geographical coordinates in degrees of the center of the SPECFEM box (\verb+BOX_CENTER+) (these are of no importance for SPECFEM itself but are needed to connect the SPECFEM box to some real volume in the earth), the number of processes used with \verb+xgenerate_databases+ (\verb+NPROC+) and some tolerances for radius and angular distance that define when two points are really different (\verb+RADIAL_TOLERANCE+ and \verb+DISTANCE_TOLERANCE+).
+%
+\begin{actionbox}[label={action:boundary-info},float=h!]{Preparation of boundary information for injection}
+   Edit the Gemini parameter file as described above. Make sure that the box dimensions are equal to those specified in the \verb+Mesh_Par_file+ and that the coordinates of the box center are identical to those specified in the main parameter file. Then, run the executable \verb+prepareSpecfemCoupling+ with the name of the Gemini parameter file as only command line argument from the main inversion folder on one process.
+\end{actionbox}
+%
+\subsection{Computing Green frequency wavenumber spectra}
+\label{sec:fkspectra}
+%
+ The next step is the computation of frequency-wavenumber (FK) spectra for a given earth model, predefined source and receiver radii from which synthetic seismograms may be calculated for any moment tensor or force source and for any epicentral distance and back-azimuth. This is done with the executable \verb+computeGreenFKSpectraForASKI+. Please go through the table of parameters (GSA) required for this program. Important ones are: the earth model (\verb+EARTH_MODEL+) which is a json-file containing radial knots and physical properties in SI-units. \verb+DSVBASENAME+ specifies the base file name of the FK spectra to be computed. The base name will be completed by the program by the source type (MOMENT or FORCE) and the index of the source node. In addition, a basename.meta file will be created. \verb+ATTENUATION_MODE+ can either be \verb+ELASTIC+, \verb+ATTENUATION_ONLY+, \verb+DISPERSION_ONLY+ or \verb+ATTENUATION_AND_DISPERSION+.
+
+ The external radial nodes specify the receiver radii and are taken from the file with the boundary points written by \verb+prepareSpecfemCoupling+ (\verb+EXTERNAL_NODES_HDF_FILE+). Therefore, you must set \verb+EXTERNAL NODES_FROM_FILE+ to 1. And you must specify the HDF path to \verb+gllUniqueRadii+ which is hardcoded into \verb+prepareSpecfemCoupling+. The parameter \verb+REC_NODE_RADIUS+ specifies the radius where your seismometers are placed, typically at the surface at $6371000$ m. The potential earthquake sources are specified by their number (\verb+NSNOD+), their radii (\verb+SOURCE_NODE_RADII+) and their type (\verb+SOURCE_TYPE+) where $1$ stands for moment tensor and $0$ for force sources. It is best to look up the \verb+gllUniqueRadii+ in the HDF file written by \verb+prepareSpecfemCoupling+ and choose radii from there which are closest to the source radii in the event file. Choosing more nodes is not helpful as, finally, the nodes closest to the true source radii are taken only.
+
+ Important properties of the FK spectra are defined by \verb+TLEN+ giving the desired length of the seismogram and also indirectly specifying frequency sampling through $df = 1/\verb+TLEN+$. The slowness limits define the upper wavenumber limits of the spectra. The upper limit is given by $k_{max} = \omega p_{lim}+k_{off}$ where $k_{off}$ is a base value controlled by \verb+WAVENUMBER_MARGIN_FRATION+. This implies that all waves with horizontal slowness higher than the slowness limit (i. e. the slow waves like surface waves and multiple S-waves) are eliminated from the FK spectrum. You may set two different slowness limits, one for the frequency range below $0.5\,\verb+FMAX+$ and one above. For hybrid teleseismic modeling you must set \verb+GLOBAL+ to 1. \verb+XLEN+ is not used in this case. Finally, the most important parameter is \verb+FMAX+ defining the upper frequency limit up to which the spectra are calculated. When choosing this parameter you should consider that the seismograms will have to be low-pass filtered later to avoid cut-off oscillations. Thus, you should include the transition from the corner frequency to the stop band of the filter into \verb+FMAX+.
+
+ The executable \verb+plotGreenFKSpectra+ may be used to visualize the FK spectra.
+%
+\begin{actionbox}[label={action:green-fkspectra},float=h!]{Producing Green frequency wavenumber spectra}
+   Choose values in the Gemini parameter file as explained above and run the executable \verb+computeGreenFKSpectraForASKI+ with the name of the Gemini parameter file as only mandatory command line argument. This is a parallel code which may be run on several processes. Check the results by visualizing the spectra using \verb+plotGreenFKSpectra+.
+\end{actionbox}
+%
+\subsection{Computing a simple travel time table}
+%
+To automatically limit the seismograms to the interesting wave packets (e. g. direct P wave) you may precompute a travel time table which allows a very fast evaluation of the travel time from the source to each boundary point. This is done by the executable \verb+computeTravelTimeTable+. Many parameters are identical to those for computing Green FK spectra (see table). In addition, you must specify a name for the output file (\verb+FILE_RAY_TABLE+) and the \verb+RAY_TYPE+ which can be either P or S. Rays are calculated for a set of turning radii (where the ray is horizontal) which should entirely lie in the lower mantle to avoid triplications. For example choosing the distance between turning nodes (\verb+TURNING_NODES_DR+) to $5000$\,m we need 444 nodes to cover the lower mantle (from the CMB at 3480 km to 5700 km).
+%
+\begin{actionbox}[label={action:travel-time-table},float=h!]{Creating a travel time table}
+   Choose values in the Gemini parameter file as explained above and run the executable \verb+computeTravelTimeTable+ with the name of the Gemini parameter file as only mandatory command line argument. This code is run on one process. To visualize rays you may use the Python ray classes defined in \verb+sphericaRay.py+. Application of these classes is exemplified in the Python script \verb+testSphericalRay.py+.
+\end{actionbox}
+%
+\subsection{Computing synthetic injection seismograms at the boundary points}
+\label{sec:bpseis}
+%
+Everything is ready now to compute synthetic seismograms at the boundary points. This is done by the executable \verb+computeSyntheticsForSpecfemCoupling+. You can do this in one step (\verb+COMPUTE_SPECTRA+ is false) or you may first compute spectra and compute seismograms in a second step. There are a few parameters that have not been set before. The filtering of the seismograms derived from the FK spectra is specified by \verb+EVENT_FILTER_TYPE+ which should be set to \verb+BUTTERWORTH_BANDPASS+ (the only one that is currently implemented) and \verb+EVENT_FILTER_SPECS+ where you define order and corner frequency of high and low pass filter. It should comply with the shortest period that is stable in the SPECFEM grid. Injected seismograms should not contain shorter periods or higher frequencies. Morever, you need to specify an output folder for the seismograms (or spectra) with \verb+PATH_SYNTHETICS+ and a file giving the events to be processed (\verb+FILE_EVENT_LIST+). The file names for the injection seismograms will be the path followed by the event id and the extension ``\_seis.hdf'' or ``\_spec.hdf''.
+
+Finally, the parameter \verb+AUTOMATIC_TIMESHIFT+ controls whether the travel time table is used to automatically calculate the start time of the seismograms. For teleseismic waves, the earliest arrival will occur at the bottom face of the model box at the point with the smallest epicentral distance from the hypocenter. This travel time minus a buffer given by the parameter  \verb+TIME_SHIFT_BUFFER+ (denoted as reduction time $t_\mathrm{red}$) is chosen as the starting time of all boundary point seismograms. The seismograms are shifted to the left by $t_\mathrm{red}$ by applying a phase shift to the Fourier transform (in this way phases originally arriving after the time window may be moved into the time window). The end time of the seismogram is calculated from the maximum travel time at the upper model face plus two times the length of the phase window, \verb+PHASE_WINDOW_LENGTH+. Travel times at individual boundary points are used to zero values that belong to times before travel time minus buffer length. Thus, the common length of all boundary point seismograms is given by $t_\mathrm{end}-t_\mathrm{red}$. Values of window length, time shift buffer, minimum travel time, reduction time and end time are written to the seismogram HDF files.
+Moreover, to avoid undesired later phases being injected at the box boundary, the injection seismograms are tapered to zero at the end of the phase window. The taper length is controlled by the parameter \verb+END_TAPER_LENGTH+ in the Gemini paramter file.
+
+ When you choose to first compute frequency spectra, the executable \\ \verb+computeSeismogramsFromSpectraForSpecfemCoupling+ does the transform into the time domain. Going this way allows to modify the filtering and window selection in a later stage without the cost of a full recomputation of the synthetics.
+
+ Both executables offer a command line option \verb+-stf+ to perform a convolution with an event specific moment rate function that is taken from an event subfolder of \verb+PATH_MEASURED_SEIS+ under the file name ``stf.txt''. How this moment rate function is determined from the observed data is described under section~\ref{sec:stf}. Note that a convolution of this moment rate function with a displacement Green function yields particle velocity. Hence, the computed injection seismograms represent particle velocity and the resulting SPECFEM displacement seismograms also represent true particle velocity. When comparing measured seismograms which are particle velocity with SPECFEM seismograms one should therefore take the SPECFEM displacement seismograms with extension \verb+semd+! The same applies to the Fourier transforms of measured and SPECFEM seismograms. When the \verb+-stf+-option is activated, the phase window length is taken from a file \verb+phasewinlen.txt+ located in the event subfolder of \verb+PATH_MEASURED_SEIS+. It is generated when determining the moment rate function.
+%
+\begin{actionbox}[label={action:injection-seismograms},float=h!]{Injection seismograms}
+   Make relevant edits in the Gemini parameter file as described above. Run the executable \verb+computeSyntheticsForSpecfemCoupling+ in parallel mode with the Gemini parameter file as mandatory argument and the flag \verb+-stf+ by which convolution with a moment rate function taken from \verb+PATH_MEASURED_SEIS/evid/+ is activated. For testing purposes you may choose the \verb+-single+ option and do the computation for one event only. For production, make sure that \verb+FILE_EVENT_LIST+ points to the ``good'' events only. Parallelization of the program is achieved by sharing the boundary points among the processes.
+\end{actionbox}

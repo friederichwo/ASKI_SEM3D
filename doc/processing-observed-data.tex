@@ -1,0 +1,120 @@
+%
+\section{Processing of observed and synthetic data}
+%
+In order to solve the kernel linear system, we also need the difference between observations and predictions which form the right hand side of the equation system. For this purpose, we need to extract from the observed seismograms Fourier transformed data samples and we need to do the same for the seismograms predicted by SPECFEM during forward computation. However, synthetic seismograms will fit only well to the observed ones if the moment or moment rate function which characterizes the temporal evolution of the earthquake process is taken into account. For this reason, the first step in preparing Fourier transformed data samples done here is to determine a moment rate function. Since the moment function itself is a monotonically increasing function of time, the moment rate function should be non-negative. We will use a non-negative least squares approach to solve this task.
+%
+\subsection{Theory of moment rate function estimation}
+ \label{sec:stf}
+%
+The currently implemented way of obtaining a moment rate function from observed seismograms is to calculate Gemini synthetics for the 1D reference model within a selected time window (here the direct P-wave), filter the data in the same way as the synthetics, cut the data to this time window and then construct a non-negative moment rate function per event that transforms the synthetic waveforms into the observed waveforms in a least-square sense. Since due to uncertainites in the earthquake origin time the observed P-wave train may arrive earlier than the synthetic one, we allow for acausal moment rate functions which are non-zero for negative times.
+ \begin{infobox}[label={info:stf},float=h!]{Moment rate function}
+   Note: moment rate function estimation is currently organized in the geminiUnified project because synthetic seismograms are currently computed using Gemini.
+ \end{infobox}
+%
+\subsubsection{Non-causal convolution}
+%
+We denote the moment rate function by $h(t)$ and the synthetic waveform by $s(t)$. Their discrete versions are sampled with identical interval $dt$ and denoted by $h_i = h((i-1)dt)$ or $s_k = s((k-1)dt)$, respectively. The samples $h_i$ are defined in the range from $-N_l < i \leq N_r$ and the synthetic samples in the range from $1 \leq k \leq K$. Thus, $N_r$ is the number of samples of the moment rate function at positive times, and $N_l$ gives the number of samples at negative times including sample zero. For example, the sample $h_0$ belongs to time $-dt$. Let us denote the output samples by $f_n$. We start the convolution with $h_1$ aligned to $s_1$, $h_0$ aligned to $s_2$ and so forth, as shown below,
+\begin{verbatim}
+	5 4 3 2 1 0 -1 -2                 h(-t)
+	        1 2  3  4 5 6 7 8 9       s(t)
+\end{verbatim}
+then shift the synthetic to the left sample by sample and end the convolution when $h_1$ is aligned with $s_K$:
+\begin{verbatim}
+	        5 4 3 2 1 0 -1 -2      h(-t)
+	1 2 3 4 5 6 7 8 9              s(t)
+\end{verbatim}
+In this way, the number of output samples is identical to the number of synthetic samples. More generally, when the sample $f_n$ is calculated, the upper limit of the sum over the moment rate samples is at $i = \mathrm{min}(n,N_r)$ and the lower limit at $i = \mathrm{max}(-N_l+1,n-K+1)$. Thus, we may write the acausal convolution as (with $1 \leq n \leq K$)
+%
+ \begin{equation}
+	f(n) = \sum_{i = \mathrm{max}(-N_l+1,n-K+1)}^{\mathrm{min}(n,N_r)} h(i)\,s(n-i+1) \,. \nonumber
+ \end{equation}
+%
+As an example, setting $N_l = 3$, $N_r = 5$ and $K = 9$, result in the following system of equations for $f_n$ with $1 \leq n \leq 9$:
+\begin{verbatim}
+|f(1)|   | s(4)  s(3)  s(2)  s(1)  0     0     0     0    | | h-2|
+|f(2)|   | s(5)  s(4)  s(3)  s(2)  s(1)  0     0     0    | | h-1|
+|f(3)|   | s(6)  s(5)  s(4)  s(3)  s(2)  s(1)  0     0    | | h0 |
+|f(4)|   | s(7)  s(6)  s(5)  s(4)  s(3)  s(2)  s(1)  0    | | h1 |
+|f(5)| = | s(8)  s(7)  s(6)  s(5)  s(4)  s(3)  s(2)  s(1) | | h2 |
+|f(6)|   | s(9)  s(8)  s(7)  s(6)  s(5)  s(4)  s(3)  s(2) | | h3 |
+|f(7)|   | 0     s(9)  s(8)  s(7)  s(6)  s(5)  s(4)  s(3) | | h4 |
+|f(8)|   | 0     0     s(9)  s(8)  s(7)  s(6)  s(5)  s(4) | | h5 |
+|f(9)|   | 0     0     0     s(9)  s(8)  s(7)  s(6)  s(5) |
+\end{verbatim}
+Inserting the data samples for the $f_n$, this system is solved in a least square sense for the $h_i$ using a non-negative least squares algorithm.
+%
+\subsection{Computation of synthetic seismograms}
+%
+ Computation of synthetic seismograms with GEMINI needs to be done in the following order: computation of Green FK spectra for synthetic seismograms, calculation of station filters and then computation of seismograms.
+
+ Run the parallel executable \verb+computeGreenFKSpetraForSynthetics+ on the cluster which produces Green FK spectra for potential sources at all external nodes and a receiver at the specified receiver node radius. It takes the same parameters as the executable \\ \verb+computeGreenFKSpectraForASKI+.
+
+  Compute station filters by running the executable \verb+computeStationFilter+ from the inversion folder. The output goes into a single HDF file for all stations. Place this file into the \verb+PATH_MEASURED_SEIS+ folder. Edit the Gemini parameter file accordingly, in particular the variables \verb+FILE_STATION_FILTER+ and \verb+STATION_FILTER_TYPE+. The station file has the same format as ASKI's station file (see~\ref{sec:station_list}) and should contain all stations used in the experiment. Station and network name together with spherical coordinates and elevation in meters should be specified in the file. The first line should be filled by an ``S'' for spherical coordinates. Its name is specified in Gemini's parameter file by the variable \verb+FILE_STATION_LIST+.
+
+  Now run the Gemini executable \verb+computeSyntheticSeismograms+ to calculate synthetic seismograms for events and stations specified in an event list and the station file. The event file should be copied from the inversion folder to the \verb+PATH_MEASURED_SEIS+ folder and the first line should be filled by an ``S'' for spherical coordinates. Parameters for the executable are set through the Gemini parameter file. In addition, it is recommended to activate the option \verb+-split+ through which the seismogram output is written into event subfolders which are created by the executable if not already present. It is also possible to activate the option \verb+-single+ to just work on a single event. The option \verb+--ascii+ activates the generation of Ascii seismogram output in addition to HDF. Do not activate the \verb+-stf+-option as the moment rate function is still to be determined. Place all the results into the folder \verb+PATH_MEASURED_SEIS+.
+
+  Consider here the specification of the event filter which is applied to all seismograms set through the parameters \verb+EVENT_FILTER_SPECS+ and \verb+EVENT_FILTER_TYPE+. It should comply with the shortest period that is stable in the SPECFEM grid. Synthetic seismograms should not contain shorter periods or higher frequencies.
+
+  Activate the \verb+AUTOMATIC_TIMESHIFT+ parameter in the Gemini parameter file. If not, you may set a reduction time in the event list. With automatic time shift activated keep the variables \verb+PHASE_WINDOW_LENGTH+ and \verb+TIME_SHIFT_BUFFER+ at the same values as chosen for the injection seismogram. Phase window length can later be shortened when determining the moment rate function.
+
+  Plot the resulting seismogram gathers using \verb+plotHdfSeismogramGather+ for HDF files and \verb+plotAsciiSeismogramGather+ for ASCII seismogram files. The graphics is interactive and allows scrolling, zooming and scaling and many other things. By specifying two seismogram gathers on the command line, one may also plot an overlay of two gathers.
+%
+\begin{actionbox}[label={action:gemini-synthetics},float=h!]{Gemini synthetic seismograms}
+   Follow the steps described above to compute Gemini synthetic seismograms for moment rate function estimation.
+\end{actionbox}
+%
+\subsection{Moment rate determination}
+%
+ Once the synthetic seismograms are produced, the executable \verb+computeSourceWavelet+ is used to determine the moment rate function. This executable iterates over the event list and takes the synthetic seismograms from the previously created event subfolders. It also assumes that the unfiltered (raw) but instrument-corrected observed seismograms can be found in an event specific subfolder as MiniSEED files. The path to these files is constructed in that order from the parameter \verb+DATA_PATH_TO_EVENTS+, the event ID and the parameter \verb+DATA_SUBEVENT_PATH+. Both paths must be specified in the Gemini parameter file. The MiniSEED files themselves follow the naming convention of ``netcode.staname.location.bandcode'' where the last letter of bandcode specifies the component. In the current implementation, \verb+computeSourceWavelet+ searches for the locations ``empty, 00, 01 and 02'' and bandocde ``HHZ''.
+
+Then, \verb+computeSourceWavelet+ goes through the stations and checks if an observed waveform is available. If not, this station is skipped. If yes, the observed waveform is read from file and it is checked whether the data contains the time window of the synthetics. If not the station is skipped, too. If yes, the observed waveforms are detrended, tapered and filtered in the same way as the synthetics and their length and sampling interval are adjusted to those of the synthetics by truncation and interpolation. During this processing, the SNR of the observed waveform is estimated from the ratio of the energy of the waveform after and before the theoretical arrival time of the P-phase. If SNR is below a bound set in the parameter file, the station is eliminated. The code also checks for problems with instrument responses and automatically corrects if log-10 RMS ratios range between $-12$ and $+12$ in steps of $3$. All other stations are eliminated from the calculation.
+
+If SNR is acceptable a moment rate function is determined by constructing a filter that converts the synthetic into the observed waveform in a least-square sense. Further potentially bad stations are identified and eliminated based on the misfit between moment rate function convolved synthetic and observed waveforms.
+
+After running the code, numerous output files are generated. First, the filtered and interpolated data are written to files \verb+data_net.staname_UP+ and the convolved synthetics are written to \verb+conv_net.staname_UP+ into a subfolder \verb+per_trace+. In addition, gathers of the filtered data and convolved synthetics, respectively, are written as well allowing plotting of all traces and also overlaying data and synthetics. Moreover, the original synthetics are written as HDF and Ascii gathers for plotting. In addition, the filtered but untruncated data are written to an Ascii file for plotting. As output, the moment rate function is written to a text file \verb+stf.txt+ and information about misfits, amplitude deviations and SNR of each station into the file \verb+trace_misifits_snr.txt+. The chosen phase window length is written to file \verb+phasewinlen.txt+. Stations with misfit greater than the parameter \verb+STF_MISFIT_BOUND+ and amplitude deviations greater that \verb+STF_RMS_BOUND+ are successively eliminated from the calculation. A file \verb+excluded-stations+ may be created with stations to be excluded in a further run. A cleaned station file and a block for the data-model-space file is also written to file. A protocol of the run is stored in \verb+computeSourceWavelet.log+.
+
+ Carefully check the moment rate functions, the trace misfits, the SNR, and the amplitude deviations by plotting them with the Python script \verb+plot_trace_misfits.py+. Also check if the phase window length is appropriate or needs to be shortened. Start with the full phase window and then check if adjustment is needed. Depending on the chosen length of the phase window you may want to adjust the length of the negative and positive parts of the moment rate function as well. Also take care to obtain a smooth and not too spiky moment rate function that nicely tapers out at both ends.
+
+The executable \verb+computeSourceWavelet+ takes the following parameters from the Gemini parfile:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item
+	\verb+PATH_MEASURED_SEIS+ is a folder below which event subfolders are created to store synthetic and observed waveforms and the STF itself.
+	\item
+    \verb+FILE_SYNSEIS_AT_STATIONS+ specifies the name of the HDF file containing the synthetics for the considered event.
+    \item
+    \verb+FILE_EVENT_LIST+ and \verb+EVENT_FILTER_TYPE+ and \verb+EVENT_FILTER_SPECS+ are already used when computing synthetics and should stay unchanged.
+    \item
+    \verb+SIGSTF+ is a parameter for smoothing the STF. Small values imply strong smoothing.
+    \item
+    \verb+MAGSTF+ allows to magnify small signals using a waterlevel method. If no magnification is desired, set the parameter to 1.0.
+    \item
+    \verb+TIME_SHIFT_BUFFER+ is already used when computing synthetics and should stay unchanged.
+    \item
+    \verb+STF_SNR_BOUND+ defines the SNR below which stations are excluded.
+    \item \verb+STF_MISFIT_BOUND+ defines the misfit above which stations are excluded.
+    \item \verb+STF_RMS_BOUND+ defines the log10 amplitude deviation above and below which stations are eliminated.
+\end{itemize}
+There are also command line arguments:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+    \item Mandatory arguments are the Gemini parameter file and
+    \item the length of the phase window.
+    \item The STF is allowed to be non-zero for negative times to allow a negative time shift of the synthetics if the P-wave arrives earlier in the observed waveforms. The option
+    \verb+-stfpos+ specifies the length of the STF for positive times while the option \verb+-stfneg+ specifies the length of the STF for negative times.
+    \item With the option \verb+-single+, a single event can be chosen from the event list.
+\end{itemize}
+%
+\begin{actionbox}[label={action:moment-rate-function},float=h!]{Moment-rate function}
+   Follow the instructions above and run \verb+computeSourceWavelet+.
+\end{actionbox}
+%
+\subsection{Preparing a station file for kernel wavefield computation}
+%
+Once source time functions have been determined for the events listed in the ASKI event file, there will exist event subfolders in the \verb+PATH_MEASURED_SEIS+ directory which contain among others a file called \verb+ASKI_clean_station_file+. This file lists all the stations that survived the quality checks done in \verb+computeSourceWavelet+. First run the Python script \verb+findAllStationsUsed.py+ to produce a file with a unique list of all stations that passed source wavelet computation. It is these stations which serve as receivers in the SPECFEM kernel displacement and kernel Green tensor computations. But before using them, the assembled station file must be converted to SPECFEM Cartesian coordinates using the Python script \verb+convertGeographicalStationFileToSpecfemCartesian.py+. The resulting file is placed into the main inversion folder under the name specified in \\ \verb+FILE_STATION_LIST+. If SPECFEM computations are done for a mesh without topography, use the option \verb+--ignore_alt+.
+%
+\subsection{Injections seismograms}
+%
+If not already done, do not forget to compute the injection seismograms as described in section \ref{sec:bpseis}. Use the option \verb+-stf+ when doing so to invoke the convolution with the previously determined source time wavelets. The moment rate functions are taken from the event subfolders of \verb+PATH_MEASURED_SEIS+ with file name \verb+stf.txt+.
+
+Seismograms from the center line of the vertical boundaries can be created using the program \verb+extractSynseisHdfGatherFromSpecfemCoupling+. It takes the Gemini parameter file and an event id as mandatory parameters and produces a HDF gather containing all seismograms on the W, S, E and N boundary.

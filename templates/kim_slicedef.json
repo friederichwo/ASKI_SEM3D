@@ -1,0 +1,91 @@
+{
+  "description": "Specification of slices through 3D earth model",
+  "hslices": {
+    "number": 16,
+    "1": {"field": "reldev", "radius": 6341000, "name": "Depth_30_km", "nlat": 60, "nlon": 80, "extrema": [-10, 10]},
+    "2": {"field": "reldev", "radius": 6321000, "name": "Depth_50_km", "nlat": 60, "nlon": 80, "extrema": [-10, 10]},
+    "3": {"field": "reldev", "radius": 6301000, "name": "Depth_70_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "4": {"field": "reldev", "radius": 6281000, "name": "Depth_90_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "5": {"field": "reldev", "radius": 6261000, "name": "Depth_110_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "6": {"field": "reldev", "radius": 6241000, "name": "Depth_130_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "7": {"field": "reldev", "radius": 6221000, "name": "Depth_150_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "8": {"field": "reldev", "radius": 6201000, "name": "Depth_170_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "9": {"field": "reldev", "radius": 6181000, "name": "Depth_190_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "10": {"field": "reldev", "radius": 6161000, "name": "Depth_210_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "11": {"field": "reldev", "radius": 6141000, "name": "Depth_230_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "12": {"field": "reldev", "radius": 6121000, "name": "Depth_250_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "13": {"field": "reldev", "radius": 6081000, "name": "Depth_290_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "14": {"field": "reldev", "radius": 6041000, "name": "Depth_330_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "15": {"field": "reldev", "radius": 5961000, "name": "Depth_410_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "16": {"field": "reldev", "radius": 5841000, "name": "Depth_530_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "17": {"field": "reldev", "radius": 6361000, "name": "Depth_10_km", "nlat": 60, "nlon": 80, "extrema": [-10, 10]},
+    "18": {"field": "reldev", "radius": 6101000, "name": "Depth_270_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "19": {"field": "reldev", "radius": 6061000, "name": "Depth_310_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "20": {"field": "reldev", "radius": 6021000, "name": "Depth_350_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "21": {"field": "reldev", "radius": 6001000, "name": "Depth_370_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "22": {"field": "reldev", "radius": 5981000, "name": "Depth_390_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "23": {"field": "reldev", "radius": 5921000, "name": "Depth_450_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "24": {"field": "reldev", "radius": 5881000, "name": "Depth_490_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "25": {"field": "reldev", "radius": 5801000, "name": "Depth_570_km", "nlat": 60, "nlon": 80, "extrema": [-5, 5]},
+    "plot_options": {
+      "dll": 1.0, "shade": "gouraud", "cliprel": -1.0, "clipabs": -1.0,
+      "norm": false, "log": false, "sym": false, "ticklabelsize": 14, "niso": 11,
+      "conlab": true, "percent": true, "wx": 16, "wy": 8, "cmap": "coolwarm_r",
+      "cmapiso": "seismic_r", "isofmt": "%.1f", "colbar": true, "cbpad": 0.05, "cbshrink": 0.75,
+      "standard_parallels": [35, 65]
+    },
+    "text": {
+      "1": {"text": "C1", "tpos": [44.5, 8.0], "rpos": [45.2, 8.2], "va": "top",
+            "arrow": true, "fontweight": "bold", "size": 14, "slices": ["11"]},
+      "2": {"text": "C2", "tpos": [47.8, 10.0], "rpos": [46.5, 10.5], "va": "bottom",
+            "arrow": true, "fontweight": "bold", "size": 14, "slices": ["11"]},
+      "3": {"text": "E", "tpos": [48.1, 12.2], "rpos": [47.0, 13.3], "va": "bottom",
+            "arrow": true, "fontweight": "bold", "size": 14, "slices": ["11"]},
+      "4": {"text": "A", "tpos": [43.8, 11.0], "rpos": [43.80, 11.0], "va": "top",
+            "arrow": false, "fontweight": "bold", "size": 14, "slices": ["11"]},
+      "5": {"text": "NAF", "tpos": [49.4, 20.0], "rpos": [49.4, 20.0], "va": "bottom",
+            "arrow": false, "fontweight": "bold", "size": 14, "slices": ["11","3"]},
+      "6": {"text": "AF", "tpos": [43.0, 14.2], "rpos": [43.0, 14.2], "va": "bottom",
+            "arrow": false, "fontweight": "bold", "size": 14, "slices": ["11","3"]},
+      "7": {"text": "SAF", "tpos": [46.0, 16.2], "rpos": [46.0, 16.2], "va": "top",
+            "arrow": false, "fontweight": "bold", "size": 14, "slices": ["11","3"]},
+      "8": {"text": "PFS", "tpos": [46.2, 8.8], "rpos": [46.2, 8.8], "va": "bottom",
+            "arrow": false, "fontweight": "bold", "size": 14, "slices": ["11","3"]}
+    },
+    "lines": {
+      "1": {
+        "file": "../../../tectonic_maps_4dmb_2020_09_17/shape_files/faults_alcapadi", "function": "getFaultDict",
+        "args": [], "slices": "all"
+      }
+    },
+    "points": {
+      "1": {"file": "../../../ASKI_stations_S", "function": "getStationDict", "args": [4,"o","black"], "slices": "all"}
+    },
+    "overlays": {
+      "1": {"file": "pseudo_mesh_vp_colsum_allf.hdf", "function": "getColsumDict", "args": [0.05, 101], "slices": "all"}
+    }
+  },
+  "vslices": {
+    "number": 7,
+    "1": {"field": "reldev", "gc": [45.3, 3.0, 45.0, 17.0], "name": "P1", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "2": {"field": "reldev", "gc": [50.0, 7.5, 41.0, 14.3], "name": "P2", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "3": {"field": "reldev", "gc": [51.0, 17.8 ,42.0 ,9.0], "name": "P3", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "4": {"field": "reldev", "gc": [47.0, 3.8, 42.5, 15.1], "name": "S1", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "5": {"field": "reldev", "gc": [49.3, 5.0, 42.0, 13.3], "name": "S2", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "6": {"field": "reldev", "gc": [51.0, 13.3, 41.0, 13.3], "name": "EASI", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "7": {"field": "reldev", "gc": [51.0, 9.5, 41.5, 9.5], "name": "EGT", "nr": 30, "ndel": 80, "extrema": [-5, 5]},
+    "plot_options": {
+      "dll": 1.0, "dllfmt":"{:2.0f}", "shade": "gouraud", "cliprel": -1.0, "clipabs": -1.0,
+      "norm": false, "log": false, "sym": false, "ticklabelsize": 14, "niso": 11,
+      "conlab": true, "percent": true, "wx": 16, "wy": 8, "cmap": "coolwarm_r",
+      "cmapiso": "seismic_r", "isofmt": "%.1f", "colbar": true, "cbpad": 0.02, "cbshrink": 0.7,
+      "dzline": 100000, "ddist": 100000, "dnorm": false
+    },
+    "text": {},
+    "lines": {},
+    "points": {},
+    "overlays": {
+      "1": {"file": "pseudo_mesh_vp_colsum_allf.hdf", "function": "getColsumDict", "args": [0.05, 101], "slices": "all"}
+    }
+  }
+}

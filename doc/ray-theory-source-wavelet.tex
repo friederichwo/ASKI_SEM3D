@@ -1,0 +1,76 @@
+\section{Source wavelet determination using ray travel time and amplitude}
+%
+The ray-theoretical displacement field is given by
+%
+\begin{align}
+   u(\v{x},t) = \mathrm{Re}\left[C(\v{x})F(t-T(\v{x}))\right] \,.
+\end{align}
+%
+Here, $u$ stands for any displacement component, $C$ is the complex-valued ray amplitude, $T$ is the travel time, and $F(t)$ is the (complex-valued) analytical signal of the source wavelet. Expanding the real part, we get
+%
+\begin{align}
+   u(\v{x},t) = C^R(\v{x})h(t-T(\v{x}))-C^I(\v{x})g(t-T(\v{x}))) \,,
+\end{align}
+%
+where $h(t)$ is the source wavelet and $g(t)$ its Hilbert transform. $C^R$ and $C^I$ denote real and imaginary part of the ray amplitude. Since, in the end we want to get Fourier coefficients of the source wavelet and since there is a simple relation between $h(t)$ and $g(t)$ in the Fourier domain, we carry out the determination of the source wavelet in the frequency domain:
+%
+\begin{align}
+   U(\v{x},\omega) = C^R(\v{x}) H(\omega)e^{-i\omega T(\v{x})} -C^I(\v{x}) G(\omega)e^{-i\omega T(\v{x})} \,,
+\end{align}
+%
+where
+%
+\begin{align}
+   G(\omega) = \left\{\begin{array}{cc} -iH(\omega) & \omega > 0 \\ +iH(\omega) & \omega < 0 \end{array}\right.
+\end{align}
+%
+Thus, for positive frequencies we find:
+%
+\begin{align}
+   U(\v{x},\omega) & = C^R(\v{x}) H(\omega)e^{-i\omega T(\v{x})} -C^I(\v{x})(-iH(\omega))e^{-i\omega T(\v{x})} \notag \\
+                   & = (C^R(\v{x})+iC^I(\v{x}))H(\omega)e^{-i\omega T(\v{x})} \notag \\
+                   & = C(\v{x})H(\omega)e^{-i\omega T(\v{x})} \,.
+\end{align}
+%
+For negative frequencies, we necessarily get the conjugated-complex expression because $U$ is the Fourier transform of a real function. Thus, it is sufficient to restrict further calculations to positive frequencies.
+
+It is important to realize that the above expression refers to a synthetic seismogram and also source wavelet with origin of the time axis at source time. When dealing with recorded data, time is often given relative to midnight of the day the earthquake happened. Moreover, the stored recorded samples are often counted and timed with origin at the start of the record. Thus, there are three different time origins involved: source time, midnight before source time and record start time.
+
+The idea of constructing the source wavelet is to determine values of $H(\omega)$ for selected or all FFT frequencies by matching the predicted Fourier coefficients $U(\v{x},\omega)$ to all Fourier coefficients of the recorded data available for the considered earthquake. Denoting the Fourier coefficients at station locations $\v{x}_k$ relative to source time by $D_k(\omega)$ we want to minimize the following object function:
+%
+\begin{align}
+   \chi^2 = \sum_k\,\left|D_k(\omega)-U_k(\omega)\right|^2 = \sum_k\,\left|D_k(\omega)-C_{k}H(\omega)e^{-i\omega T_k}\right|^2 \,.
+\end{align}
+%
+We can choose a convenient time for the start of the data records from which we compute the Fourier amplitudes, and we choose the start as the source time, $\theta_s$ plus the travel time $T_k$ minus some buffer time $t_b$:
+%
+\begin{align}
+   \theta_k = \theta_s+T_k-t_b \,.
+\end{align}
+%
+The symbol $\theta$ signifies that the time is measured relative to midnight. Moreover, the length of the data record is restricted to the phase window of the direct P-wave whose length $w$ is individually determined from the data. The total length of the data record is then $L=w+t_b$.
+
+Taking the data samples as is and doing a Fourier transform gives us a spectrum denoted by $\tilde{D}_k(\omega)$ which is related to the one relative to source time by
+%
+\begin{align}
+   \tilde{D}_k(\omega) & = D_k(\omega) e^{i\omega(\theta_k-\theta_s)} = D_k(\omega) e^{i\omega(T_k-t_b)} \,.
+\end{align}
+%
+The phase factor indicates a shift of the time origin to the right (from source time to start time) being equivalent to a shift of the wavelet by the same amount to the left. Replacing $D_k(\omega)$ by $\tilde{D}_k(\omega)$ in the misfit function, we get
+%
+\begin{align}
+   \chi^2 & = \sum_k\,\left|\tilde{D}_k(\omega)e^{-i\omega(T_k-t_b)}-C_{k}H(\omega)e^{-i\omega T_k}\right|^2 \notag \\
+          & = \sum_k\,\left|e^{-i\omega (T_k-t_b)}(\tilde{D}_k(\omega)-C_{k}H(\omega)e^{-i\omega t_b})\right|^2 \notag \\
+          & = \sum_k\,\left|\tilde{D}_k(\omega)-C_{k}H(\omega)e^{-i\omega t_b}\right|^2 \notag \\
+          & = \sum_k\,(\tilde{D}_k(\omega)-C_{k}H(\omega)e^{-i\omega t_b})(\tilde{D}_k(\omega)^*-C_{k}^*H^*(\omega)e^{i\omega t_b})
+\end{align}
+%
+Differentiating with respect to $H^*$ and zeroing the result, we find:
+%
+\begin{align}
+   H(\omega) = \frac{\sum_k\,C_k^* \tilde{D}_k(\omega)e^{i\omega t_b}}{\sum_k |C_k|^2} \,.
+\end{align}
+%
+Back transforming $H(\omega)$ yields the source wavelet relative to source time. Back transforming $-iH(\omega)$ yields its Hilbert transform.
+
+

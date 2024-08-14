@@ -1,0 +1,305 @@
+%
+\section{ASKI with hybrid SPECFEM for forward computation}
+%
+We are ready now to do hybrid forward calculations with SPECFEM. Since we also want to use these calculations for inversion we do the calculations in the framework of ASKI. Actually, ASKI provides the Python script \verb+prepare_specfem_kernel.py+ that helps to run SPECFEM in a consistent way. The behaviour of ASKI is controlled by a few parameter files that act at different levels. There is the main parameter file already mentioned in section~\ref{subsec:folder-structure} that contains specifications valid for all iterations to be done which is read by all ASKI executables. Then, there is an iteration specific parameter file called \verb+iter_parfile+ which contains parameters that may change during iteration. Finally, for use with SPECFEM, there is a \verb+Par_file_ASKI+ that is read by some ASKI-extended SPECFEM routines.
+%
+\subsection{Model property definition and correlation}
+\label{subsec:property-correlation}
+%
+ There are two parameters in the main parameter file related to model properties: \verb+PROPERTY_SET_NAME+ defines the set of material properties used for describing the earth model. ASKI currently handles only one property set, namely \verb+isoVelocitySI+ with parameters $\rho$, $v_p$ and $v_s$ in SI-units. \verb+PROPERTY_CORRELATION_FILE+ defines a priori correlations between properties inverted for and other properties needed for SPECFEM computations.
+ For example, we may only invert for P-wave velocity but assume that a change in P-wave velocity may also imply a change of shear-wave velocity and density in the earth. This means, we pull along density and shear wave velocity with P-wave velocity. If we assume such a correlation, it has consequences for kernel computation as well as for the model update.
+
+ Assume that the true perturbations in the earth are given by $\Delta\rho$, $\Delta v_p$ and $\Delta v_s$, while our inverted properties are $d\rho$, $dv_p$ and $dv_s$. We can define a correlation between the \textbf{relative} model changes as follows:
+\begin{align}
+   \frac{\Delta \rho}{\rho} &= b_{11}\frac{d\rho}{\rho} + b_{12}\frac{dv_p}{v_p} + b_{13}\frac{dv_s}{v_s} \notag \\
+   \frac{\Delta v_p}{v_p} &= b_{21}\frac{d\rho}{\rho} + b_{22}\frac{dv_p}{v_p} + b_{23}\frac{dv_s}{v_s} \notag \\
+   \frac{\Delta v_s}{v_s} &= b_{31}\frac{d\rho}{\rho} + b_{32}\frac{dv_p}{v_p} + b_{33}\frac{dv_s}{v_s}
+\end{align}
+From this, we obtain a correlation between absolute model changes as follows:
+\begin{align}
+   \Delta \rho &= b_{11}\,d\rho + b_{12}\frac{\rho}{v_p}\,dv_p + b_{13}\frac{\rho}{v_s}\,dv_s \notag \\
+   \Delta v_p &= b_{21}\frac{v_p}{\rho}\,d\rho + b_{22}\,dv_p + b_{23}\frac{v_p}{v_s}\,dv_s \notag \\
+   \Delta v_s &= b_{31}\frac{v_s}{\rho}\,d\rho + b_{32}\frac{v_s}{v_p}\,dv_p + b_{33}\,dv_s \,.
+\end{align}
+Thus, if our inversion result is for example $dv_p$, we should define the coefficients $b_{i2}$ to calculate true perturbations.
+
+For kernel computation, we have the general relation between the change of some component of displacement $\delta u_m$ and the model changes $\Delta\rho$, $\Delta v_p$ and $\Delta v_s$:
+\begin{align}
+	\delta u_m = \int_V \left(K_m^{\rho}\Delta\rho+K_m^{v_p}\Delta v_p+K_m^{v_s}\Delta v_s\right)\ dV \,.
+\end{align}
+Inserting our correlation with the properties inverted for, we get:
+\begin{align}
+   \delta u_m &= \int_V \left(K_m^{'\rho}\,d\rho + K_m^{'v_p}\,dv_p + K_m^{'v_s}\,dv_s\right)\ dV \,,
+\end{align}
+with
+\begin{align}
+	K_m^{'\rho} &= K_m^{\rho}b_{11}+K_m^{v_p}b_{21}\frac{v_p}{\rho}+K_m^{v_s}b_{31}\frac{v_s}{\rho} \notag \\
+	K_m^{'v_p} & = K_m^{\rho}b_{12}\frac{\rho}{v_p} +K_m^{v_p}b_{22} +K_m^{v_s}b_{32}\frac{v_s}{v_p} \notag \\
+	K_m^{'v_s} & = K_m^{\rho}b_{13}\frac{\rho}{v_s} +K_m^{v_p}b_{23}\frac{v_p}{v_s} +K_m^{v_s}b_{33}\,.
+\end{align}
+%
+The coefficients $b_{ij}$ are specified in the parameter correlation file as follows:\\
+Header Line: model parameterization \\
+Line 2: property name followed by correlation coefficients  (b(1,j),j = 1,npar)\\
+Line 3: property name followed by correlation coefficients  (b(2,j),j = 1,npar)\\
+Line 4: property name followed by correlation coefficients  (b(3,j),j = 1,npar)\\
+The coefficients are stored in a matrix. The file should be placed in the main inversion folder to ensure consistency over several iterations.
+
+Example 1: We invert for $v_p$ only and want to drag $\rho$ and $v_s$ along:
+\begin{verbatim}
+isoVelocitySI
+rho  0.0   0.3   0.0
+vp   0.0   1.0   0.0
+vs   0.0   1.8   0.0
+\end{verbatim}
+Example 2: We invert for vp only and want to leave rho and vs unchanged:
+\begin{verbatim}
+isoVelocitySI
+rho  0.0   0.0   0.0
+vp   0.0   1.0   0.0
+vs   0.0   0.0   0.0
+\end{verbatim}
+%
+\begin{actionbox}[label={action:property-correlation},float=h!]{Material property correlation}
+   Check and edit the file \verb+model_property-correlation+ in the inversion folder to values appropriate for your problem.
+\end{actionbox}
+%
+\subsection{Further main parameters}
+%
+\subsubsection{More paths}
+%
+\verb+PATH_GEMINI+ defines the place where all GEMINI related input and output is stored.\\ \verb+PATH_MEASURED_DATA+ is the folder where the values of Fourier transform of the observed seismograms at the specified frequencies are put. \verb+PATH_MEASURED_SEIS+ specifies the folder for the processed observed data and also the associated GEMINI synthetics used for moment rate function estimation. \verb+PATH_INJECTION_SEIS+ is the folder for the injection seismograms computed with GEMINI and read by SPECFEM. \verb+PATH_SPECFEM_INPUT+ is SPECFEM's folder for input data. \verb+PATH_SPECFEM_DATABASES+ is the place where SPECFEM puts the parallel databases produced by \verb+xgenerate_databases+.
+%
+\subsubsection{The ASKI station file}
+\label{sec:station_list}
+%
+Many tasks in ASKI are controlled by a file that specifies the stations to be worked with. The ASKI station list specifies the location of the stations in the SPECFEM cartesian coordinates. It looks as follows:
+\begin{verbatim}
+	C
+	PANIX    CH   -133752.963001    71059.4324246    -1800.58929328
+	OGMY     FR   -385061.514947   -23382.3912922   -11690.1864372
+	A291A    Z3    77163.7420469    47704.0489728     -645.96684267
+\end{verbatim}
+The first line specifies a cartesian coordinate system (C). The following lines give the station locations in the following order: station name, network code, $x$-coordinate, $y$-coordinate, $z$-coordinate.
+ While SPECFEM3D\_C needs the coordinates in its own cartesian coordinate system, station locations are commonly specified in geographical coordinates. For this reason, it is useful to first set up a station file with geographical coordinates and then use the Python script \verb+convertGeographicalStationFileToSpecfemCartesian.py+ to produce one with SPECFEM cartesian coordinates. Note that for ASKI inversion, Green tensor computations need to be done for all stations that contribute data to the inversion regardless of the fact that not all of them may be available or useful for all considered events.
+%
+ \begin{actionbox}[label={action:station-file},float=h!]{ASKI station file}
+    Setup a file with stations to be used in inversion.
+ \end{actionbox}
+%
+\subsubsection{The ASKI event file}
+\label{sec:aski-events}
+%
+Many tasks in ASKI are controlled by a file that specifies a list of earthquake sources to be worked with. The ASKI event file looks as follows (each event one line):
+\begin{verbatim}
+C
+191207_000000 20191207_000000_000000000    0.0000    -90.0000
+70000.000 6.3  740.0  1 -0.475E+17  0.269E+17 -0.222E+17
+-0.759E+17 -0.105E+17 -0.105E+17
+\end{verbatim}
+The first line specifies the type of coordinate system, the 2nd line the event by event id, date-time string, latitude, longitude, depth in meters, magnitude, time shift, source type and moment tensor elements. Source type is 1 for moment tensors and 0 for forces. In case of a force source the event entry contains the three force components.
+%
+ \begin{actionbox}[label={action:event-file},float=h!]{ASKI event file}
+    Setup a file with events to be used in inversion. Make sure that preceding tasks like the computation of injection seismograms worked with an event file which is identical or a superset of this file.
+ \end{actionbox}
+%
+\subsubsection{Setting frequency parameters}
+%
+ASKI does the inversion in the frequency domain. Wavefields in the time domain are Fourirer transformed and the result is stored only at selected frequencies. These frequencies should be identical to those for which the measured data are available. You may set these frequencies using the parameters \verb+MEASURED_DATA_....+ to set frequency stepping \verb+DF+, the number of frequencies \verb+NF+ and a set of indices \verb+JF+. The frequencies are obtained as \verb+f = JF*DF+.
+%
+\subsubsection{Inversion grid center}
+%
+\verb+INVGRID_CENTER_LAT+ and \verb+INVGRID_CENTER_LON+ specify the geographical coordinates of the center of the inversion grid. ASKI uses the Cartesian coordinates of the SPECFEM grid for its inversion grid. To assign densities and velocities to the inversion grid from a 3D tomographic model defined on geographical coordinates, we need to know the physical position of the grid. \verb+REARTH+ specifies the radius of the earth in meters.
+%
+\subsubsection{Subfolders for iteration specific output of ASKI}
+%
+The main parameter file also specifies folders whose contents is iteration-specific. Therefore, these folders are organized as subfolders to an iteration-step directory specified through the parameters \verb+ITERATION_STEP_PATH+ and \verb+CURRENT_ITERATION_STEP+ in the form \verb+iteration_step_001+. The names of these subfolders are, however, set already in the main parameter file because it does not make sense to change their names during iterating. They serve the following purposes:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+  \item \verb+PATH_ASKI_MAIN_FILES+: This folder contains the ASKI main file which contains information about the inversion grid, cell neighbours and also the SPECFEM GLL-points. In addition, it holds information about the current earth model. Typically, this file is the same for all events to be treated and needs therefore to be calculated only once.
+  \item \verb+PATH_KERNEL_DISPLACEMENTS+: Location of displacements fields emanating from the source or injected at the boundary of the SPECFEM computational box required for computation of sensitivity kernels. These fields are the result of SPECFEM runs discussed later.
+  \item \verb+PATH_KERNEL_GREEN_TENSORS+: Location of displacements field backpropagated from the receiver positions assuming specfic single forces there. These fields are also results of SPECFEM computations.
+  \item \verb+PATH_SENSITIVITY_KERNELS+: Folder where the resulting sensitivity kernels computed from the kernel displacements and kernel Green tensors are stored.
+  \item \verb+PATH_SYNTHETIC_DATA+: Location of Fourier transformed synthetic seismograms.
+  \item \verb+PATH_OUTPUT_FILES+: In this folder, diverse output files of small size produced by the various ASKI executables are collected.
+  \item \verb+PATH_VTK_FILES+: Location of VTK files for visualisation
+\end{itemize}
+%
+\subsubsection{SPECFEM related parameters of ASKI}
+%
+The third block in the main parameter file concerns parameters relevant for the ASKI extensions of SPECFEM. They serve the following purposes:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item \verb+USE_ASKI_BACKGROUND_MODEL+: specifies if an ASKI background is used when constructing the parallel databases of SPECFEM.
+   \item \verb+FILE_ASKI_BACKGROUND_MODEL+: the name of the file containing the background model.
+   \item \verb+IMPORT_ASKI_INVERTED_MODEL+: flag specifying if a 3D Fmtomo model should be used when constructing the parallel databases of SPECFEM.
+   \item \verb+FILE_ASKI_INVERTED_MODEL+: the name of the file containing the Fmtomo model.
+   \item \verb+COMPUTE_ASKI_OUTPUT+: basic flag if SPECFEM produces output for ASKI at all.
+   \item \verb+ASKI_HDF_OUTPUT+: flag whether SPECFEM used HDF for ASKI output.
+   \item \verb+ASKI_USES_GPU+: flag if SPECFEM uses GPU also for operations related to ASKI output, e. g. Fourier transform of the displacement fields.
+   \item \verb+ASKI_type_inversion_grid+: type of onversion grid. Only implemented value is 4 for \verb+specfem3d_inversion_grid+.
+   \item \verb+ASKI_wx+: together with \verb+ASKI_wy+ and \verb+ASKI_wz+ these variables define a subregion of the SPECFEM box in pseudo-coordinates defining the ASKI inversion domain.
+   \item \verb+ASKI_rot_X+: together with \verb+ASKI_rot_Y+ and \verb+ASKI_rot_Z+, these variables define a rotation of the ASKI inversion domain relative to the SPECFEM box.
+   \item \verb+ASKI_cx+: together with \verb+ASKI_cy+ and \verb+ASKI_cz+, these variables define the center of the ASKI inversion domain relative to the SPECFEM box. The ASKI extension in SPECFEM assumes that elements of the inversion grid lie in ranges $-\frac{1}{2}w_x < x-c_x < \frac{1}{2}w_x$ and so forth. With regard to the non-symmteric depth range of SPECFEM (from $0$ to $-D$) and the the fact that the $Z$-axis points upwards, \verb+ASKI_cz+ should be negative such that $-\frac{1}{2}w_z < z-c_z < \frac{1}{2}w_z$ describes the extent of the inversion domain properly.
+\end{itemize}
+There are further parameters of ASKI relevant for SPECFEM which appear in the iteration parameter file. Thy are described in the next subsection.
+%
+ \begin{actionbox}[label={action:update-main-parfile},float=h!]{Main parameter file update}
+    Revisit the main parameter file and set or update all values not already set right in the beginning.
+ \end{actionbox}
+%
+\subsection{The iteration parameter file}
+%
+Once the ASKI main parameter file has been set up, we may create iteration step folders and subfolders with the script \verb+createIterationFolders.py+ and an initial version of the \verb+iter_parfile+ for each iteration. This file will be placed into the iteration step folders. The script gets as input the name of the main parameter file and the intended number of iterations. The following table specifies the variables set in the iteration parameter file:
+%
+\begin{longtable}{|p{8.0cm}|c|c|c|}\hline
+	\multicolumn{4}{|c|}{ASKI iteration parameter file} \\ \hline
+	Variable & Recomm. Value \\ \hline
+	\verb+ITERATION_STEP_NUMBER_OF_FREQ+ &    4               \\ \hline
+	\verb+ITERATION_STEP_INDEX_OF_FREQ+  &    1 2 3 4         \\ \hline
+	\verb+VTK_GEOMETRY_TYPE+             &    CELLS           \\ \hline
+   \verb+VTK_COORDS_SCALING_FACTOR+     &    1.0             \\ \hline
+   \verb+NPROC+                         &    40              \\ \hline
+   \verb+MAX_NUM_CG_ITERATIONS+         &   10000            \\ \hline
+   \verb+NITER_WINDOW_STA+              &   20               \\ \hline
+   \verb+NITER_WINDOW_LTA+              &   200              \\ \hline
+   \verb+VSCAL_SMOOTHING+               &   1.0 1.0 1.0      \\ \hline
+   \verb+VSCAL_DAMPING+                 &   1.0 1.0 1.0      \\ \hline
+   \verb+DT+                            &   0.14             \\ \hline
+   \verb+NSTEP+                         &   1000             \\ \hline
+   \verb+GREEN_TENSOR_COMPONENT+        &   UP               \\ \hline
+   \verb+ASKI_MAIN_FILE_ONLY+           &   .false.          \\ \hline
+   \verb+ASKI_MAIN_FILE_WRITE+          &   .true.           \\ \hline
+   \verb+ASKI_DFT_method+               &   EXPLICIT\_SUMMATION \\ \hline
+   \verb+ASKI_DFT_double+               &   .false.          \\ \hline
+   \verb+ASKI_DFT_apply_taper+          &   .true.           \\ \hline
+   \verb+ASKI_DFT_taper_percentage+     &   0.05             \\ \hline
+\end{longtable}
+%
+The parameters have the following meaning:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item \verb+ITERATION_STEP_NUMBER_OF_FREQ+ allows to set the number of frequencies used in the inversion to deviate from what is specified in the main parameter file. This way, the user may start the inversion with a few low frequencies and then add higher frequencies with iterations.
+   \item \verb+ITERATION_STEP_INDEX_OF_FREQ+ allows to explicitly set the frequencies to be used. The chosen frequencies must however be a subset of the ones specified in the main parameter file.
+   \item \verb+VTK_GEOMETRY_TYPE+: either \verb+CELLS+ indicating data on inversion grids will be written on the volumetric inversion grid cells or
+    \verb+CELL_CENTERS+, indicating data on inversion grids will be written on the cell center points.
+   \item \verb+VTK_COORDS_SCALING_FACTOR+: this may be helpful if coordinate values (e.g. in m) get so large that they cause problems in paraview.
+   \item \verb+DT+: Time step in seconds for SPECFEM simulations. Look into output\_generate\_databases.txt for hints how to choose this value.
+   \item \verb+NSTEP+: Number of time steps for Specfem computations. Only relevant for kernel Green tensor simulations. For injection, step number is taken from sequential source description.
+   \item \verb+GREEN_TENSOR_COMPONENT+:  Component of the Green tensor (= direction of single force at receiver position). Identical to data component to be used for inversion later.  Give here only one; if further components are desired, do additional SPECFEM runs.
+   \item \verb+ASKI_MAIN_FILE_ONLY+:  Tells if only ASKI main file is produced to check inversion grid and background model and then abort the simulation.
+   \item \verb+ASKI_MAIN_FILE_WRITE+:  Tell if ASKI main file is written for first source.
+   \item \verb+ASKI_DFT_method+: Choose the method of Discrete Fourier Transform: \\
+   \verb+EXPLICIT_SUMMATION+ means on-the-fly summation of complex values $s(t)*exp^(-i*2\pi ft)$. the only method implemented for GPU.
+   \item \verb+ASKI_DFT_double+:  Precision of Discrete Fourier Transform. For use with GPU, single precision is required.
+   \item \verb+ASKI_DFT_apply_taper+ and \verb+ASKI_DFT_taper_percentage+:  Decide whether the time series should be tapered by a hanning taper (on tail) before (i.e. on-the-fly while) applying the discrete fourier transform. The value of taper percentage (between 0.0 and 1.0) defines the amount of  total time for which the hanning taper will be applied at the tail of the time series.
+\end{itemize}
+The missing parameters \verb+NPROC+, \verb+MAX_NUM_CG_ITERATIONS+, \verb+NITER_WINDOW_STA+ and \verb+NITER_WINDOW_LTA+, \verb+VSCAL_SMOOTHING+ and \verb+VSCAL_DAMPING+ are explained later in the section on solving the kernel equation system (\ref{sec:solve-kernel-system}).
+%
+ \begin{actionbox}[label={action:update-iter-parfile},float=h!]{Iteration step parameter file update}
+    Visit the iteration parameter file of the current iteration and set values to all parameters listed above..
+ \end{actionbox}
+%
+\subsection{ASKI's parameter file for SPECFEM}
+%
+ The ASKI extensions of SPECFEM are managed through the parameter file \verb+Par_file_ASKI+. Once the main and the iteration step parameter file are filled with proper values, \verb+Par_file_ASKI+ can be filled completely using the Python script \verb+prepare_specfem_kernel.py+. Most of the parameters have been explained already and the few remaining ones will be described later in section~\ref{sec:senskernels}.
+%
+\subsection{Setting up an initial 3D ASKI inverted model based on FMTOMO}
+%
+For this purpose, you may use the ASKI program \verb+convertFmtomoToKim+ which can read 3D models from FMTOMO and produce values for non-inverted properties using predefined model property correlations. The program expects the following input on the command line:
+the name of the ASKI main parameter file, the name of the file containing the 3D model, and a flag specifying if VTK output is produced. For running SPECFEM, add the name of the output text file to ASKI's parameter file for SPECFEM (variable \verb+FILE_ASKI_INVERTED_MODEL+). Put the file either directly into \verb+DATA+ or establish a symbolic link.
+%
+\subsection{Computing kernel displacements and kernel Green tensors}
+%
+For kernel computation, forward computations from the sources to the GLL points of the SPECFEM grid and backward computations from the receiver locations to the GLL points are required. This can be done most conveniently using SPECFEM's multiple sequential sources capability by which SPECFEM can do simulations for many different sources (including injected wavefields) in one run. Most of the tasks described in the following two subsections are done by the Python script \verb+prepare_specfem_kernel.py+.
+%
+\subsubsection{SPECFEM's multiple sequential sources capability}
+%
+For efficieny reasons, SPECFEM was modified to allow wavefield computations for several sources in a single run. This functionality is controlled by the \verb+MULTIPLE_SEQUENTIAL_SOURCES+ flag and the \verb+SEQUENTIAL_SOURCES_DESCRIPTION_FILE+ which are both specified in SPECFEM's parameter file. SPECFEM knows 3 modes of sequential sources: moment tensor sources (mode 1), single force sources (mode 2) and injected wavefields (mode 3). In any case, each source is described by a single line in the description file. For moment tensor sources each line contains the following entries:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+  \item \verb+t_shift+: must be set to zero, otherwise the SPECFEM solver does not run.
+  \item \verb+hdur+: half duration of the source function assumed to be of Gaussian shape for point sources. Recommended value is $5\Delta t$.
+  \item $x$, $y$, $z$: SPECFEM Cartesian coordinates $X$, $Y$ and $Z$ of the hypocenter
+  \item $M_{rr}$, $M_{\vartheta\vartheta}$, $M_{\phi\phi}$, $M_{r\vartheta}$, $M_{r\phi}$, $M_{\vartheta\phi}$: moment tensor components in $Nm$. They are transformed to box cartesian components by SPECFEM.
+  \item \verb+ASKI_output_ID+: the identification string of the considered earthquake
+  \item \verb+ASKI_outfile+: part of the path to the synthetic seismograms and also to the calculated displacement fields
+\end{itemize}
+
+For single force sources each line contains the following entries:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+  \item \verb+t_shift+: must be set to zero, otherwise the SPECFEM solver does not run.
+  \item \verb+hdur+: half duration of the source function assumed to be of Gaussian shape for point sources. Recommended value is $5\Delta t$.
+  \item $x$, $y$, $z$: SPECFEM Cartesian coordinates $X$, $Y$ and $Z$ of the hypocenter.
+  \item $f_x$, $f_y$, $f_z$: single force in $N$ in SPECFEM box Cartesian components. With ASKI, the force direction is the desired receiver component of the sensitivity kernels.
+  \item \verb+ASKI_output_ID+: the identification string of the considered source. With ASKI, the stations locations serve as positions of the source, so the identification string contains network code and station name.
+  \item \verb+ASKI_outfile+: part of the path to the synthetic seismograms and also to the calculated kernel Green tensor fields.
+\end{itemize}
+
+For injection sources each line contains the following entries:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item number of time steps of the SPECFEM simulation,
+   \item the file name of the injected wavefield on the boundary points of the SPECFEM box,
+   \item \verb+ASKI_output_ID+: the identification string of the considered source,
+   \item \verb+ASKI_outfile+: part of the path to the synthetic seismograms and also to the calculated kernel displacement fields.
+\end{itemize}
+%
+\subsubsection{Length of time step and simulation in SPECFEM}
+%
+ The length of the SPECFEM simulation is controlled by the parameters \verb+NSTEP+ and \verb+DT+. While \verb+DT+ should be chosen according to the recommendation given in the SPECFEM output file \verb+output_generate_databases.txt+ in the folder \verb+OUTPUT_FILES+, the number of steps and thus the length of the simulation depends on whether kernel displacements or kernel Green tensors are computed. For kernel displacements, the simulation length should be chosen equal to the length of the injected seismograms as described in section~\ref{sec:bpseis}. It is calculated by the Python script.
+
+  For kernel Green tensors (i. e. single force Green functions for sources at the station locations), the simulation length can be restricted according to the following considerations: Consider the path of a scattered wave from the box boundary to some scatterer inside the box (taking time $t_d$) and from there (as either P or S) to the receiver (taking time $t_b$ which is equal to the time the back-propagated wave needs from receiver to scatterer). To get all scattered signals that arrive within the phase window of length $w$, the total time allowed for the scattered wave $t_b+t_d$ should be not be less than the time of the direct wave from the box boundary to the reciver ($t_r$) plus the phase window length, $t_b+t_d \geq t_r+w$. Thus, for the back-propagated wave, we find $t_b \geq w+t_r-t_d$. The right hand side assumes its maximum for a scatterer on the box boundary with $t_d=0$. Thus, a lower limit for $t_b$ is $t_r+w$. The direct travel time to the receiver can be estimated as the depth of the box divided by average P-wave velocity, $H/v_p$, leading to $t_b\approx H/v_p+w$.
+%
+\subsubsection{The Python script}
+%
+This script \verb+prepare_specfem_kernel.py+ does all the preparations required for computing kernel displacements and kernel Green tensors. It modifies the SPECFEM parameter file and creates \verb+Par_file_ASKI+ based on information from the main and iteration parameter files. It also creates an appropriate list of source descriptions which is read and worked through by SPECFEM. The script either works through the event list (for kernel displacement) or the station list (for kernel Green tensors). It checks the existence of the paths specified in the main and the iteration parameter files. For back propagation from the receiver locations, depending on the choice of Green tensor component, proper values for the force components are calculated by the script including a component transformation. The script is located in the Python folder of ASKI. As command line arguments, the script expects the following informations:
+%
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parameter file,
+   \item \verb+--disp+: flag indicating that kernel displacement fields are computed,
+   \item \verb+--gt+: flag indicating that kernel Green tensor fields are computed
+   \item \verb+--no_gpu+: flag indicating that ASKI extensions should not use the GPU.
+\end{itemize}
+%
+ \begin{actionbox}[label={action:run-kernel},float=h!]{Kernel displacement and Green tensor wavefields }
+   Run the script \verb+prepare_specfem_kernel.py+. Provide the name of the parameter file and either the option \verb+--disp+ or \verb+--gt+ on the command line. Either a file \verb+kernel_disp_specfem_injection+ or \verb+kernel_gt_specfem_forces+ is created in \verb+DATA+ that provides the required source information to SPECFEM. Also go through the parameter files \verb+Par_file_ASKI+ and \verb+Par_file+ and check if the changes made by the script are correct. Then run SPECFEM most conveniently by using the script \verb+run_executable_on_sge.py+. If any errors happen, files with names \verb+error_messages_*.txt+ may be written to \verb+OUTPUT_FILES+. Remove these files before running SPECFEM again. You can follow the progress of the run by watching the file \verb+output_solver.txt+ in \verb+OUTPUT_FILES+.The run \verb+xspecfem3D+ with the number of processes defined when preparing the SPECFEM databases.
+ \end{actionbox}
+
+After running the script, you may want to go through the \verb+Par_file_ASKI+ and check if all parameters were set as expected.
+As already mentioned, the script also modifies the SPECFEM \verb+Par_file+. You do not need to care about the variables marked by ``auto'' in the table describing this file. But walk through the other variables and give them reasonable values following the recommendations in the table. Now you are ready to start the SPECFEM computations by running xspecfem3D.
+%
+\subsubsection{Results produced by the SPECFEM run}
+%
+After having run SPECFEM successfully, you should have received the following output in the current iteration step folder:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+	\item the ASKI main file in folder \verb+aski_main_files+,
+	\item in case kernel displacements were computed: for each event, the Fourier transformed wavefields from the source (or injected) in folder \verb+kernel_displacements+ for each selected frequency plus a subfolder with SPECFEM  synthetic seismograms at the stations. Specfem log files in \verb+OUTPUT_FILES+ should be copied manually to a \verb+specfem_logs+ subfolder if desired.
+	\item in case kernel Green tensors were calculated: for each station and selected component the Fourier transformed Green tensor wavefields emanating from the receiver locations in \verb+kernel_green_tensors+ for each selected frequency plus a subfolder with synthetic seismograms . These seismograms are not needed and are reduced to one single station by the \verb+prepare_specfem_kernel.py+-script for efficiency reasons.  Specfem log files in \verb+OUTPUT_FILES+ should be copied manually to a \verb+specfem_logs+ subfolder if desired.
+\end{itemize}
+%
+\subsubsection{Visualization of kernel displacement and kernel Green tensor fields}
+%
+The executables \verb+kdisp2vtk+ and \verb+kgt2vtk+ allow a visualization of the frequency-domain kernel displacement and kernel Green tensor wavefields, respectively, computed by SPECFEM. They are managed via the main parameter file and further command line arguments. For \verb+kdispl2vtk+ the command line arguments are:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-evid+: the identification string of the kernel displacement object, here the event id,
+   \item \verb+-ifreq+: the frequency index at which the wavefield output should be extracted,
+   \item \verb+-ucomp+: one of the strings ``ux'', ``uy'', ``uz'', ``exx'', ``eyy'', ``ezz'', ``eyz'', ``exz'', ``exy'', denoting either displacement or strain components,
+   \item \verb+-norm+: flag if displacement fields are normalised to $1.0$.
+\end{itemize}
+For \verb+kgt2vtk+ the command line arguments are:
+\begin{itemize}
+	\setlength{\itemsep}{-0.1cm}
+   \item the name of the main parfile,
+   \item \verb+-netsta+: the identification string of the kernel Green tensor object, here ``network.station'',
+   \item \verb+-fcomp+: force component of the kernel Green tensor object (e. g. ``UP''),
+   \item \verb+-ifreq+: the frequency index at which the wavefield output should be extracted,
+   \item \verb+-ucomp+: one of the strings ``ux'', ``uy'', ``uz'', ``exx'', ``eyy'', ``ezz'', ``eyz'', ``exz'', ``exy'', denoting either displacement or strain components,
+   \item \verb+-norm+: flag if displacement fields are normalised to $1.0$.
+\end{itemize}
+Both programs produce VTK files which can be rendered using \verb+paraview+.

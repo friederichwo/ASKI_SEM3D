@@ -1,0 +1,73 @@
+anyRankIntegerArray.o: anyRankArray.o
+anyRankRealArray.o: anyRankArray.o
+argumentParser.o: string.o realloc.o
+asciiDataIO.o: errorMessage.o realloc.o
+asciiSynseisIO.o: string.o
+askiBackgroundModel.o: string.o errorMessage.o
+axesRotation.o: mathConstants.o
+basePlotGather.o: string.o errorMessage.o timeSeries.o fourierSpectrum.o
+collectColsums.o: globalHdfInfo.o inputParameter.o inversionBasics.o string.o argumentParser.o hdfWrapper.o errorMessage.o regularSphericalGrid.o
+computeHorizontalModelSlices.o: anyRankRealArray.o globalHdfInfo.o globalMpiInfo.o kernelInvertedModel.o anyRankIntegerArray.o inversionBasics.o inputParameter.o string.o mpiSupport.o argumentParser.o errorMessage.o smartUtils.o
+computeKernelsDmspaceParallel.o: rayKernelWavefield.o anyRankRealArray.o globalHdfInfo.o rayInversionGrid.o globalMpiInfo.o specfem3dKernelWavefield.o anyRankIntegerArray.o inversionBasics.o propertySet.o spectralWaveformKernel.o inputParameter.o iterationStepBasics.o string.o mpiSupport.o dataModelSpaceInfo.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o
+computeMisfits.o: globalHdfInfo.o globalMpiInfo.o kernelLinearSystem.o propertySet.o inversionBasics.o inputParameter.o mpiSupport.o string.o mathConstants.o dataModelSpaceInfo.o argumentParser.o hdfWrapper.o errorMessage.o
+computeModelNorm.o: globalHdfInfo.o globalMpiInfo.o kernelInvertedModel.o inversionBasics.o propertySet.o inputParameter.o iterationStepBasics.o string.o linearModelRegularization.o mpiSupport.o dataModelSpaceInfo.o specfem3dInversionGrid.o argumentParser.o errorMessage.o smartUtils.o
+computeRegularSphericalGridSlices.o: globalHdfInfo.o inputParameter.o string.o axesRotation.o argumentParser.o hdfWrapper.o errorMessage.o regularSphericalGrid.o
+computeTravelTimeField.o: mathConstants.o travelTimes.o errorMessage.o
+convertFmtomoToKim.o: globalHdfInfo.o globalMpiInfo.o kernelInvertedModel.o inversionBasics.o propertySet.o inputParameter.o errorMessage.o iterationStepBasics.o string.o axesRotation.o mpiSupport.o specfem3dInversionGrid.o fmtomoModel.o argumentParser.o askiBackgroundModel.o
+convertFmtomoToRsg.o: globalHdfInfo.o string.o argumentParser.o fmtomoModel.o errorMessage.o regularSphericalGrid.o
+createCheckerboardKim.o: globalHdfInfo.o kernelInvertedModel.o inversionBasics.o inputParameter.o errorMessage.o mathConstants.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o askiBackgroundModel.o regularSphericalGrid.o
+dataModelSpaceInfo.o: propertySet.o constants.o seismicNetwork.o realloc.o errorMessage.o seismicEventList.o
+dateTime.o: realloc.o timeUtils.o
+decomposeDmspace.o: inversionBasics.o iterationStepBasics.o dataModelSpaceInfo.o argumentParser.o errorMessage.o smartUtils.o
+discreteFourierTransform.o: mathConstants.o errorMessage.o
+errorMessage.o: realloc.o
+evaluateSpmOnRsg.o: globalHdfInfo.o mathConstants.o hdfWrapper.o argumentParser.o errorMessage.o regularSphericalGrid.o
+fileUnitHandler.o: realloc.o
+fmtomoModel.o: string.o errorMessage.o
+fourierSpectrum.o: timeSeries.o fourierTransform.o
+fourierTransform.o: mathConstants.o
+hdfWrapper.o: string.o anyRankRealArray.o errorMessage.o anyRankIntegerArray.o
+initBasics.o: inversionBasics.o iterationStepBasics.o string.o argumentParser.o errorMessage.o
+inputParameter.o: errorMessage.o
+interactiveBindingsPlotGather.o: changeAxesLimitsPgplot.o basePlotGather.o
+inversionBasics.o: inputParameter.o propertySet.o string.o readEventStationFile.o seismicNetwork.o errorMessage.o seismicEventList.o
+inversionGrid.o: errorMessage.o inputParameter.o
+iterationStepBasics.o: fileUnitHandler.o errorMessage.o inversionBasics.o inputParameter.o
+kdispl2vtk.o: globalMpiInfo.o specfem3dKernelWavefield.o fileUnitHandler.o inversionBasics.o iterationStepBasics.o string.o mpiSupport.o seismicNetwork.o specfem3dInversionGrid.o argumentParser.o vtkFile.o errorMessage.o seismicEventList.o
+kernel2vtk.o: globalHdfInfo.o globalMpiInfo.o fileUnitHandler.o inversionBasics.o propertySet.o spectralWaveformKernel.o iterationStepBasics.o string.o mpiSupport.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o vtkFile.o
+kernelInvertedModel.o: globalHdfInfo.o inversionGrid.o propertySet.o mathConstants.o axesRotation.o fmtomoModel.o hdfWrapper.o askiBackgroundModel.o
+kernelLinearSystem.o: globalHdfInfo.o globalMpiInfo.o kernelInvertedModel.o spectralWaveformKernel.o dataModelSpaceInfo.o hdfWrapper.o errorMessage.o
+kernelWavefield.o: errorMessage.o constants.o
+kgt2vtk.o: globalMpiInfo.o specfem3dKernelWavefield.o fileUnitHandler.o inversionBasics.o iterationStepBasics.o string.o mpiSupport.o seismicNetwork.o specfem3dInversionGrid.o argumentParser.o errorMessage.o vtkFile.o
+linearModelRegularization.o: errorMessage.o inversionGrid.o globalMpiInfo.o
+parameterCorrelation.o: errorMessage.o modelParametrization.o
+plotMeasuredWithSyntheticSeismograms.o: asciiSynseisIO.o basePlotGather.o inputParameter.o string.o axesRotation.o seismicNetwork.o readEventStationFile.o mathConstants.o argumentParser.o hdfWrapper.o interactiveBindingsPlotGather.o errorMessage.o timeSeries.o pgPlotWindow.o
+propertySet.o: string.o constants.o
+rayInversionGrid.o: inversionGrid.o globalMpiInfo.o inputParameter.o string.o mathConstants.o axesRotation.o errorMessage.o smartUtils.o
+rayKernelWavefield.o: kernelWavefield.o errorMessage.o globalMpiInfo.o
+readEventStationFile.o: seismicEvent.o seismicStation.o seismicNetwork.o seismicEventList.o errorMessage.o dateTime.o
+recursiveFilterCoefficients.o: mathConstants.o
+regularSphericalGrid.o: globalHdfInfo.o mathConstants.o axesRotation.o hdfWrapper.o errorMessage.o
+seismicEvent.o: mathConstants.o errorMessage.o constants.o dateTime.o
+seismicEventList.o: seismicEvent.o errorMessage.o
+seismicNetwork.o: errorMessage.o seismicStation.o
+seismicStation.o: mathConstants.o errorMessage.o constants.o dateTime.o
+smartUtils.o: mathConstants.o
+solveCglsKernelSystem.o: globalHdfInfo.o globalMpiInfo.o kernelInvertedModel.o inversionBasics.o kernelLinearSystem.o propertySet.o inputParameter.o iterationStepBasics.o string.o linearModelRegularization.o mpiSupport.o dataModelSpaceInfo.o specfem3dInversionGrid.o argumentParser.o errorMessage.o smartUtils.o vtkFile.o
+specfem3dForASKIFiles.o: globalHdfInfo.o globalMpiInfo.o constants.o hdfWrapper.o errorMessage.o
+specfem3dInversionGrid.o: specfem3dForASKIFiles.o inversionGrid.o inputParameter.o string.o mathConstants.o heapSort.o axesRotation.o locatePoint.o errorMessage.o
+specfem3dKernelWavefield.o: specfem3dForASKIFiles.o globalMpiInfo.o fileUnitHandler.o kernelWavefield.o errorMessage.o
+spectralWaveformKernel.o: rayKernelWavefield.o globalHdfInfo.o inversionGrid.o globalMpiInfo.o specfem3dKernelWavefield.o propertySet.o mathConstants.o realloc.o hdfWrapper.o errorMessage.o
+string.o: errorMessage.o constants.o
+throwKernelOnSphericalPseudoMesh.o: globalHdfInfo.o inversionBasics.o propertySet.o spectralWaveformKernel.o inputParameter.o iterationStepBasics.o string.o mathConstants.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o regularSphericalGrid.o
+throwKernelOnVgrid.o: globalHdfInfo.o inversionBasics.o propertySet.o spectralWaveformKernel.o inputParameter.o iterationStepBasics.o mathConstants.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o smartUtils.o regularSphericalGrid.o
+throwKimOnSphericalPseudoMesh.o: globalHdfInfo.o kernelInvertedModel.o inversionBasics.o inputParameter.o errorMessage.o iterationStepBasics.o mathConstants.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o askiBackgroundModel.o smartUtils.o regularSphericalGrid.o
+throwKimOnVgrid.o: globalHdfInfo.o kernelInvertedModel.o inversionBasics.o inputParameter.o iterationStepBasics.o mathConstants.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o smartUtils.o regularSphericalGrid.o
+throwWavefieldOnSphericalPseudoMesh.o: rayKernelWavefield.o globalHdfInfo.o specfem3dKernelWavefield.o inversionBasics.o inputParameter.o iterationStepBasics.o mpiSupport.o mathConstants.o string.o specfem3dInversionGrid.o argumentParser.o hdfWrapper.o errorMessage.o regularSphericalGrid.o
+timeSeries.o: asciiDataIO.o fourierTransform.o filterCoefficientsDecimate.o realloc.o recursiveFilterCoefficients.o errorMessage.o dateTime.o
+transformMeasuredDataAsciiSeis.o: seismicEvent.o asciiSynseisIO.o discreteFourierTransform.o inversionBasics.o constants.o errorMessage.o seismicStation.o string.o axesRotation.o seismicNetwork.o hdfWrapper.o argumentParser.o travelTimes.o smartUtils.o seismicEventList.o
+transformSpecfemSynthetics.o: seismicEvent.o asciiSynseisIO.o discreteFourierTransform.o asciiDataIO.o inversionBasics.o constants.o inputParameter.o seismicStation.o string.o errorMessage.o axesRotation.o seismicNetwork.o hdfWrapper.o argumentParser.o travelTimes.o smartUtils.o seismicEventList.o
+travelTimes.o: anyRankRealArray.o mathConstants.o hdfWrapper.o locatePoint.o errorMessage.o
+updateModelPerturbations.o: globalMpiInfo.o kernelInvertedModel.o inversionBasics.o inputParameter.o string.o specfem3dInversionGrid.o argumentParser.o errorMessage.o
+vtkFile.o: errorMessage.o inversionGrid.o
+writeVtkFiles.o: globalMpiInfo.o fileUnitHandler.o inversionBasics.o iterationStepBasics.o string.o mpiSupport.o specfem3dInversionGrid.o argumentParser.o errorMessage.o vtkFile.o

@@ -1,0 +1,51 @@
+{
+  "description": "Specification of slices through 3D earth model",
+  "hslices": {
+    "number": 3,
+    "1": {"field": "reldev", "radius": 6361000, "name": "Depth_10_km", "nlat": 60, "nlon": 80, "extrema": [-10, 10]},
+    "2": {"field": "reldev", "radius": 6341000, "name": "Depth_30_km", "nlat": 60, "nlon": 80, "extrema": [-10, 10]},
+    "3": {"field": "reldev", "radius": 6321000, "name": "Depth_50_km", "nlat": 60, "nlon": 80},
+    "plot_options": {
+      "dll": 1.0, "shading": "gouraud", "extrema": [-5.0, 5.0], "cliprel": -1.0, "clipabs": -1.0,
+      "norm": false, "log": false, "sym": false, "ticklabelsize": 14, "iso": 11,
+      "conlab": true, "percent": true, "wx": 16, "wy": 8, "cmap": "coolwarm_r",
+      "cmapiso": "seismic_r", "isofmt": "%.2f", "colbar": true, "cbpad": 0.05, "cbshrink": 0.075,
+      "standard_parallels": [35, 65]
+    },
+    "text": {
+      "1": {"text": "C1", "tpos": [45.2, 10.4], "rpos": [45.5, 10.6], "va": "top",
+            "arrow": true, "fontweight": 14, "slices": ["2"]},
+      "2": {"text": "C2", "tpos": [45.2, 10.4], "rpos": [45.5, 10.6], "va": "bottom",
+            "arrow": true, "fontweight": 14, "slices": ["1"]}
+    },
+    "lines": {
+      "1": {
+        "file": "tectonic_maps_4dmb_2020_09_17/shape_files/faults_alcapadi", "function": "getFaultDict",
+        "args": null, "slices": "all"
+      }
+    },
+    "points": {
+      "1": {"file": "ASKI_stations_S", "function": "getStationDict", "args": [4,"o","black"], "slices": "all"}
+    },
+    "overlays": {
+      "1": {"file": "pseudo_mesh_colsum_allf.hdf", "function": "getColsumDict", "args": [0.05, 101], "slices": "all"}
+    }
+  },
+  "vslices": {
+    "number": 2,
+    "1": {"field": "reldev", "gc": [51.0,4.0,42.0,13.0], "name": "P1", "nr": 30, "ndel": 80},
+    "2": {"field": "reldev", "gc": [51.0,6.3,42.0,14.4], "name": "P2", "nr": 30, "ndel": 80},
+    "plot_options": {
+      "dll": 1.0, "shading": "gouraud", "extrema": [-5.0, 5.0], "cliprel": -1.0, "clipabs": -1.0,
+      "norm": false, "log": false, "sym": false, "ticklabelsize": 14, "iso": 11,
+      "conlab": true, "percent": true, "wx": 16, "wy": 8, "cmap": "coolwarm_r",
+      "cmapiso": "seismic_r", "isofmt": "%.2f", "colbar": true, "cbpad": 0.05, "cbshrink": 0.075
+    },
+    "text": {},
+    "lines": {},
+    "points": {},
+    "overlays": {
+      "1": {"file": "pseudo_mesh_colsum_allf.hdf", "function": "getColsumDict", "args": [0.05, 101], "slices": "all"}
+    }
+  }
+}
